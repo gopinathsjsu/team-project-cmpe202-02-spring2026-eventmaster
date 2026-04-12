@@ -1,4 +1,4 @@
-from django.urls import path
+from django.urls import include, path
 from django.http import JsonResponse
 from django.db import connection
 
@@ -18,5 +18,6 @@ def db_health(request):
     
 urlpatterns = [
     path("health/", health),
-    path("db_health/", db_health)
+    path("db_health/", db_health),
+    path("auth/", include("accounts.urls")),
 ]
