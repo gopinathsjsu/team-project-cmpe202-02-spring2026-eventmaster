@@ -46,6 +46,9 @@ export default function LoginPage() {
 
     const data = new FormData(e.currentTarget);
     console.log(Object.fromEntries(data));
+
+    // Temporary navigation until backend authentication is implemented.
+    window.location.assign("/dashboard");
   }
 
   return (

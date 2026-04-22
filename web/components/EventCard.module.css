@@ -1,0 +1,72 @@
+.card {
+  overflow: hidden;
+  border-radius: 1rem;
+  border: 1px solid #e6e6ee;
+  background: #ffffff;
+  box-shadow: 0 2px 12px rgba(16, 20, 40, 0.05);
+}
+
+.banner {
+  height: 10rem;
+  padding: 0.9rem;
+  background: linear-gradient(135deg, #b491ff, #b9a4f3);
+}
+
+.dateBox {
+  width: 2.4rem;
+  border-radius: 0.45rem;
+  background: rgba(89, 57, 140, 0.24);
+  padding: 0.25rem 0.2rem;
+  text-align: center;
+  color: #24153c;
+}
+
+.dateMonth {
+  display: block;
+  font-size: 0.64rem;
+  font-weight: 700;
+}
+
+.dateDay {
+  display: block;
+  font-size: 1.35rem;
+  line-height: 1;
+  font-weight: 700;
+}
+
+.content {
+  padding: 1rem 1.1rem 1.2rem;
+}
+
+.tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+
+.tag {
+  border-radius: 999px;
+  padding: 0.28rem 0.58rem;
+  background: #ececf3;
+  color: #4a4c58;
+  font-size: 0.74rem;
+  font-weight: 600;
+}
+
+.success {
+  background: #d7f2db;
+  color: #276431;
+}
+
+.warning {
+  background: #f8dcdf;
+  color: #8f3d4a;
+}
+
+.title {
+  margin-top: 0.7rem;
+  color: #1f212a;
+  font-size: 1.48rem;
+  line-height: 1.2;
+  font-weight: 700;
+}

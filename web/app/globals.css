@@ -30,7 +30,9 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
-
+h1, h2, h3 {
+  letter-spacing: -0.05em;
+}
 * {
   box-sizing: border-box;
   padding: 0;

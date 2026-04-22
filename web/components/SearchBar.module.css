@@ -1,0 +1,120 @@
+.topBar {
+  display: grid;
+  grid-template-columns: minmax(200px, 1fr) minmax(200px, 1fr) auto;
+  gap: 1rem;
+  align-items: center;
+}
+
+.searchInput {
+  height: 3rem;
+  border-radius: 999px;
+  border: 1px solid #e5e5ed;
+  background: #ffffff;
+  color: #22232a;
+  font-size: 0.92rem;
+  padding: 0 1.1rem;
+}
+
+.searchInput::placeholder {
+  color: #9696a3;
+}
+
+.profileButton {
+  height: 3rem;
+  border-radius: 999px;
+  border: none;
+  padding: 0 1rem;
+  background: #11131c;
+  color: #ffffff;
+  font-weight: 600;
+  font-size: 0.85rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  cursor: pointer;
+}
+
+.profileDropdown {
+  position: relative;
+  justify-self: end;
+}
+
+.chevron {
+  display: inline-flex;
+  width: 1rem;
+  height: 1rem;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.62rem;
+  font-weight: 700;
+  opacity: 0.9;
+}
+
+.dropdownMenu {
+  position: absolute;
+  top: calc(100% + 0.5rem);
+  right: 0;
+  width: 220px;
+  border-radius: 1.1rem;
+  background: #ececef;
+  border: 1px solid #e0e0e8;
+  box-shadow: 0 10px 24px rgba(13, 16, 28, 0.12);
+  padding: 0.65rem;
+  z-index: 20;
+}
+
+.menuItem {
+  width: 100%;
+  border: none;
+  background: transparent;
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  border-radius: 0.65rem;
+  padding: 0.55rem 0.65rem;
+  color: #2e313d;
+  font-size: 1.03rem;
+  text-align: left;
+  cursor: pointer;
+}
+
+.menuItem:hover {
+  background: #e4e4eb;
+}
+
+.settingsItem {
+  color: #8053ff;
+}
+
+.menuIcon {
+  width: 1rem;
+  height: 1rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  border: 1px solid currentColor;
+  font-size: 0.68rem;
+  font-weight: 700;
+}
+
+@media (max-width: 900px) {
+  .topBar {
+    grid-template-columns: 1fr;
+  }
+
+  .profileDropdown {
+    justify-self: stretch;
+  }
+
+  .profileButton {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .dropdownMenu {
+    left: 0;
+    right: auto;
+    width: 100%;
+  }
+}
