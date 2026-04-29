@@ -41,13 +41,12 @@
 
 .chevron {
   display: inline-flex;
-  width: 1rem;
-  height: 1rem;
+  width: .375rem;
+  height: .375rem;
+  background: #fff;
+  border-radius: .375rem;
   align-items: center;
   justify-content: center;
-  font-size: 0.62rem;
-  font-weight: 700;
-  opacity: 0.9;
 }
 
 .dropdownMenu {

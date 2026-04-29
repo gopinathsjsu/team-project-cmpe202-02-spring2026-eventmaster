@@ -1,8 +1,10 @@
 'use client';
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import Footer from "../components/Footer";
 import Navbar from "../components/Navbar";
+import { fetchMe, login, register, setAuthTokens, setStoredUser } from "../../lib/auth";
 import "../login/login.styles.scss";
 
 /** Remember Me: email + username only (never the password). */
@@ -24,9 +26,13 @@ function readRememberedRegister() {
 }
 
 export default function RegisterPage() {
+  const router = useRouter();
   const [email, setEmail] = useState("");
   const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
   const [remember, setRemember] = useState(false);
+  const [error, setError] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     const saved = readRememberedRegister();
@@ -37,22 +43,40 @@ export default function RegisterPage() {
     }
   }, []);
 
-  function handleRegisterSubmit(e) {
+  async function handleRegisterSubmit(e) {
     e.preventDefault();
     const emailTrim = email.trim();
     const usernameTrim = username.trim();
+    setError("");
+    setIsSubmitting(true);
 
-    if (remember && (emailTrim || usernameTrim)) {
-      localStorage.setItem(
-        REMEMBER_STORAGE_KEY,
-        JSON.stringify({ email: emailTrim, username: usernameTrim })
-      );
-    } else {
-      localStorage.removeItem(REMEMBER_STORAGE_KEY);
+    try {
+      await register({
+        email: emailTrim,
+        username: usernameTrim,
+        password,
+      });
+
+      const tokens = await login({ username: usernameTrim, password });
+      setAuthTokens(tokens);
+      const me = await fetchMe(tokens.access);
+      setStoredUser(me);
+
+      if (remember && (emailTrim || usernameTrim)) {
+        localStorage.setItem(
+          REMEMBER_STORAGE_KEY,
+          JSON.stringify({ email: emailTrim, username: usernameTrim })
+        );
+      } else {
+        localStorage.removeItem(REMEMBER_STORAGE_KEY);
+      }
+
+      router.replace("/dashboard");
+    } catch (submitError) {
+      setError(submitError.message || "Unable to register.");
+    } finally {
+      setIsSubmitting(false);
     }
-
-    const data = new FormData(e.currentTarget);
-    console.log(Object.fromEntries(data));
   }
 
   return (
@@ -95,6 +119,7 @@ export default function RegisterPage() {
                 placeholder="you@example.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
+                required
               />
             </div>
             <div className="loginField">
@@ -110,6 +135,7 @@ export default function RegisterPage() {
                 placeholder="Choose a username"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
+                required
               />
             </div>
             <div className="loginField">
@@ -123,6 +149,9 @@ export default function RegisterPage() {
                 autoComplete="new-password"
                 className="loginInput"
                 placeholder="Create a password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
               />
             </div>
 
@@ -139,8 +168,9 @@ export default function RegisterPage() {
               </label>
             </div>
 
-            <button type="submit" className="loginSubmit">
-              Register
+            {error && <p role="alert">{error}</p>}
+            <button type="submit" className="loginSubmit" disabled={isSubmitting}>
+              {isSubmitting ? "Creating Account..." : "Register"}
             </button>
           </form>
 

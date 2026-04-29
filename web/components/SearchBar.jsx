@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { clearAuthTokens, getStoredUser } from "../lib/auth";
 import styles from "./SearchBar.module.css";
 
 export default function SearchBar({
@@ -11,6 +12,7 @@ export default function SearchBar({
   onSignOut,
 }) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [currentProfileLabel, setCurrentProfileLabel] = useState(profileLabel);
   const dropdownRef = useRef(null);
   const router = useRouter();
 
@@ -36,17 +38,24 @@ export default function SearchBar({
     };
   }, []);
 
+  useEffect(() => {
+    const user = getStoredUser();
+    if (!user) return;
+    setCurrentProfileLabel(user.email || user.username || profileLabel);
+  }, [profileLabel]);
+
   async function handleSignOut() {
     setIsMenuOpen(false);
 
     try {
+      clearAuthTokens();
       if (onSignOut) {
         await onSignOut();
       }
     } catch (error) {
       console.error("Sign out handler failed:", error);
     } finally {
-      router.push("/");
+      router.replace("/login");
     }
   }
 
@@ -67,8 +76,8 @@ export default function SearchBar({
           aria-haspopup="menu"
           aria-expanded={isMenuOpen}
         >
-          <span className={styles.chevron}>v</span>
-          {profileLabel}
+          <span className={styles.chevron}></span>
+          {currentProfileLabel}
         </button>
 
         {isMenuOpen && (

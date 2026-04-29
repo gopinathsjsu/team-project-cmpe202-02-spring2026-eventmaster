@@ -1,8 +1,10 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import SearchBar from "../../components/SearchBar";
 import SidePanel from "../../components/SidePanel";
+import RequireAuth from "../components/RequireAuth";
+import { clearAuthTokens, fetchMe, getAccessToken, getStoredUser, setStoredUser } from "../../lib/auth";
 import styles from "./page.module.css";
 
 function getPlaceholderSettings() {
@@ -47,6 +49,7 @@ function toBackendPayload(values) {
 export default function SettingsPage() {
   const [settings, setSettings] = useState(() => getPlaceholderSettings());
   const [saveState, setSaveState] = useState("idle");
+  const [isLoadingProfile, setIsLoadingProfile] = useState(true);
 
   const profileCompletion = useMemo(() => {
     const profileValues = Object.values(settings.profile);
@@ -84,6 +87,44 @@ export default function SettingsPage() {
     }));
   }
 
+  useEffect(() => {
+    async function loadCurrentUser() {
+      const applyUserToSettings = (user) => {
+        if (!user) return;
+        setSettings((current) => ({
+          ...current,
+          profile: {
+            ...current.profile,
+            firstName: user.first_name || "",
+            lastName: user.last_name || "",
+            email: user.email || "",
+          },
+        }));
+      };
+
+      const storedUser = getStoredUser();
+      applyUserToSettings(storedUser);
+
+      const access = getAccessToken();
+      if (!access) {
+        setIsLoadingProfile(false);
+        return;
+      }
+
+      try {
+        const me = await fetchMe(access);
+        setStoredUser(me);
+        applyUserToSettings(me);
+      } catch {
+        clearAuthTokens();
+      } finally {
+        setIsLoadingProfile(false);
+      }
+    }
+
+    loadCurrentUser();
+  }, []);
+
   async function handleSave(event) {
     event.preventDefault();
     setSaveState("saving");
@@ -97,15 +138,17 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className={styles.settingsLayout}>
-      <SidePanel />
+    <RequireAuth>
+      <div className={styles.settingsLayout}>
+        <SidePanel />
 
-      <main className={styles.content}>
-        <SearchBar />
+        <main className={styles.content}>
+          <SearchBar />
 
         <section className={styles.headerSection}>
           <h1 className={styles.title}>Account Settings</h1>
           <p className={styles.subtitle}>Manage your profile, preferences, and security in one place.</p>
+          {isLoadingProfile && <p className={styles.savedMessage}>Loading your account details...</p>}
         </section>
 
         <form className={styles.form} onSubmit={handleSave}>
@@ -231,7 +274,8 @@ export default function SettingsPage() {
             {saveState === "saved" && <p className={styles.savedMessage}>Changes saved locally (placeholder).</p>}
           </div>
         </form>
-      </main>
-    </div>
+        </main>
+      </div>
+    </RequireAuth>
   );
 }

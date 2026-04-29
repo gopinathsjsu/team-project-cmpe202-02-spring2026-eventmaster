@@ -1,8 +1,17 @@
 'use client';
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
 import Footer from "../components/Footer";
 import Navbar from "../components/Navbar";
+import {
+  clearAuthTokens,
+  fetchMe,
+  getAccessToken,
+  login,
+  setAuthTokens,
+  setStoredUser,
+} from "../../lib/auth";
 import "./login.styles.scss";
 
 /** Remember Me: only the username/email is stored (never the password). */
@@ -20,8 +29,13 @@ function readRememberedEmail() {
   }
 }
 export default function LoginPage() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [remember, setRemember] = useState(false);
+  const [error, setError] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     const saved = readRememberedEmail();
@@ -31,24 +45,47 @@ export default function LoginPage() {
     }
   }, []);
 
-  function handleLoginSubmit(e) {
+  useEffect(() => {
+    const existingAccess = getAccessToken();
+    if (!existingAccess) return;
+
+    fetchMe(existingAccess)
+      .then((me) => {
+        setStoredUser(me);
+        router.replace(searchParams.get("next") || "/dashboard");
+      })
+      .catch(() => {});
+  }, [router, searchParams]);
+
+  async function handleLoginSubmit(e) {
     e.preventDefault();
     const trimmed = email.trim();
+    setError("");
+    setIsSubmitting(true);
 
-    if (remember && trimmed) {
-      localStorage.setItem(
-        REMEMBER_STORAGE_KEY,
-        JSON.stringify({ email: trimmed })
-      );
-    } else {
-      localStorage.removeItem(REMEMBER_STORAGE_KEY);
+    try {
+      const tokens = await login({ username: trimmed, password });
+      setAuthTokens(tokens);
+      const me = await fetchMe(tokens.access);
+      setStoredUser(me);
+
+      if (remember && trimmed) {
+        localStorage.setItem(
+          REMEMBER_STORAGE_KEY,
+          JSON.stringify({ email: trimmed })
+        );
+      } else {
+        localStorage.removeItem(REMEMBER_STORAGE_KEY);
+      }
+
+      router.replace(searchParams.get("next") || "/dashboard");
+    } catch (submitError) {
+      // Prevent stale sessions from keeping a user authenticated after a failed login attempt.
+      clearAuthTokens();
+      setError(submitError.message || "Unable to sign in.");
+    } finally {
+      setIsSubmitting(false);
     }
-
-    const data = new FormData(e.currentTarget);
-    console.log(Object.fromEntries(data));
-
-    // Temporary navigation until backend authentication is implemented.
-    window.location.assign("/dashboard");
   }
 
   return (
@@ -80,7 +117,7 @@ export default function LoginPage() {
           <form className="loginForm" onSubmit={handleLoginSubmit}>
             <div className="loginField">
               <label htmlFor="login-email" className="loginLabel">
-                Email Address / Username
+                Username
               </label>
               <input
                 id="login-email"
@@ -91,6 +128,7 @@ export default function LoginPage() {
                 placeholder="you@example.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
+                required
               />
             </div>
             <div className="loginField">
@@ -104,6 +142,9 @@ export default function LoginPage() {
                 autoComplete="current-password"
                 className="loginInput"
                 placeholder="Enter your password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
               />
             </div>
 
@@ -123,8 +164,9 @@ export default function LoginPage() {
               </button>
             </div>
 
-            <button type="submit" className="loginSubmit">
-              Sign In
+            {error && <p role="alert">{error}</p>}
+            <button type="submit" className="loginSubmit" disabled={isSubmitting}>
+              {isSubmitting ? "Signing In..." : "Sign In"}
             </button>
           </form>
 
