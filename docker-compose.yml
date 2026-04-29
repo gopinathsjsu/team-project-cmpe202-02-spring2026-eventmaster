@@ -35,12 +35,12 @@ services:
   web:
     build: ./web
     environment:
-      VITE_API_URL: http://localhost:8000
+      NEXT_PUBLIC_API_URL: http://localhost:8000
       CHOKIDAR_USEPOLLING: true
       CHOKIDAR_INTERVAL: 200
       WATCHPACK_POLLING: true
     ports:
-      - "5173:5173"
+      - "3000:3000"
     volumes:
       - ./web:/app
       - /app/node_modules
