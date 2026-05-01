@@ -1,28 +1,11 @@
+import Link from "next/link";
 import EventCard from "../../components/EventCard";
 import SearchBar from "../../components/SearchBar";
 import SkeletonCard from "../../components/SkeletonCard";
 import SidePanel from "../../components/SidePanel";
+import { sampleEvents } from "../../lib/sampleEvents";
 import RequireAuth from "../components/RequireAuth";
 import styles from "./page.module.css";
-
-const recommendedEvents = [
-  {
-    date: { month: "APR", day: "14" },
-    availability: "Low Availability",
-    availabilityTone: "warning",
-    location: "Saratoga, CA",
-    price: "From $89.99",
-    title: "Silicon Valley Wine Tasting Night 2026",
-  },
-  {
-    date: { month: "JUN", day: "29" },
-    availability: "High Availability",
-    availabilityTone: "success",
-    location: "San Mateo, CA",
-    price: "From $39.99",
-    title: "Startup Seminar & Technical Convention 2026",
-  },
-];
 
 const upcomingItems = Array.from({ length: 8 });
 
@@ -38,8 +21,14 @@ export default function DashboardPage() {
           <section>
             <h1 className={styles.sectionTitle}>Recommended Events</h1>
             <div className={styles.recommendedGrid}>
-              {recommendedEvents.map((event) => (
-                <EventCard key={event.title} event={event} />
+              {sampleEvents.map((event) => (
+                <Link
+                  key={event.id ?? event.title}
+                  href={`/event?id=${event.id}`}
+                  className={styles.eventCardLink}
+                >
+                  <EventCard event={event} />
+                </Link>
               ))}
             </div>
           </section>

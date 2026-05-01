@@ -53,6 +53,18 @@
   color: #626372;
   font-size: 0.92rem;
   padding: 0.58rem 0.72rem;
+  cursor: pointer;
+  transition: background 140ms ease, color 140ms ease;
+}
+
+.navItem:hover {
+  color: #7f44ff;
+  background: #f2ecff;
+}
+
+.navItem:focus-visible {
+  outline: 2px solid #9b7fd9;
+  outline-offset: 2px;
 }
 
 .active {
