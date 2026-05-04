@@ -20,4 +20,5 @@ urlpatterns = [
     path("health/", health),
     path("db_health/", db_health),
     path("auth/", include("accounts.urls")),
+    path("events/", include("events.urls")),
 ]

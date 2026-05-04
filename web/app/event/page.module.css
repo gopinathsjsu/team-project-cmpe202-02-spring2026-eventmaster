@@ -70,10 +70,27 @@
   color: #6b2833;
 }
 
+.badgePending {
+  background: rgba(120, 90, 40, 0.2);
+  color: #5c4518;
+}
+
 .eventId {
   font-size: 0.78rem;
   font-weight: 600;
   color: rgba(36, 21, 60, 0.65);
+}
+
+.categoryBadge {
+  display: inline-block;
+  border-radius: 999px;
+  padding: 0.25rem 0.65rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  background: rgba(89, 57, 140, 0.2);
+  color: #3d2a5c;
 }
 
 .title {
@@ -168,4 +185,149 @@
 .notFound p {
   color: #5c5f6a;
   margin-bottom: 1.25rem;
+}
+
+.loadingText {
+  margin: 0;
+  color: #5c5f6a;
+  font-size: 0.95rem;
+}
+
+.rsvpCard {
+  margin-top: 1.5rem;
+  border-radius: 1rem;
+  border: 1px solid #e6e6ee;
+  background: #ffffff;
+  box-shadow: 0 2px 12px rgba(16, 20, 40, 0.05);
+  padding: 1.35rem 1.4rem 1.25rem;
+}
+
+.rsvpBody {
+  margin: 0 0 0.75rem;
+  font-size: 0.95rem;
+  color: #3d4050;
+  line-height: 1.55;
+}
+
+.rsvpMuted {
+  margin: 0;
+  font-size: 0.92rem;
+  color: #6a6d78;
+}
+
+.rsvpMutedInline {
+  font-size: 0.82rem;
+  color: #8b8d9a;
+}
+
+.rsvpHint {
+  margin: 0.75rem 0 0;
+  font-size: 0.88rem;
+  color: #6a6d78;
+}
+
+.rsvpSuccess {
+  margin: 0 0 0.65rem;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #1f4d28;
+}
+
+.rsvpActions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.5rem;
+}
+
+.rsvpButtonRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.primaryButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.55rem 1.15rem;
+  border-radius: 0.5rem;
+  border: none;
+  font-size: 0.9rem;
+  font-weight: 700;
+  cursor: pointer;
+  background: linear-gradient(135deg, #7c5fd4 0%, #9b84e8 100%);
+  color: #ffffff;
+  box-shadow: 0 2px 8px rgba(91, 74, 138, 0.25);
+}
+
+.primaryButton:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.secondaryButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  border: 1px solid #d8d8e6;
+  font-size: 0.88rem;
+  font-weight: 600;
+  cursor: pointer;
+  background: #ffffff;
+  color: #3d4050;
+}
+
+.secondaryButton:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.secondaryLink {
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: #5b4a8a;
+}
+
+.secondaryLink:hover {
+  text-decoration: underline;
+}
+
+.inlineLink {
+  font-weight: 600;
+  color: #5b4a8a;
+}
+
+.inlineLink:hover {
+  text-decoration: underline;
+}
+
+.errorText {
+  margin: 0 0 0.75rem;
+  font-size: 0.88rem;
+  color: #9a3040;
+}
+
+.calendarAdd {
+  margin: 1rem 0 0;
+  padding-top: 1rem;
+  border-top: 1px solid #ececf3;
+}
+
+.textButton {
+  padding: 0;
+  border: none;
+  background: none;
+  font: inherit;
+  font-weight: 600;
+  color: #5b4a8a;
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.textButton:hover {
+  color: #3d2f66;
 }

@@ -25,11 +25,18 @@ function readRememberedRegister() {
   }
 }
 
+const ROLES = [
+  { value: "attendee", label: "Attendee", hint: "Discover events and register for tickets." },
+  { value: "organizer", label: "Organizer", hint: "Create events and manage attendees." },
+  { value: "admin", label: "Admin", hint: "Moderate events and manage platform settings." },
+];
+
 export default function RegisterPage() {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [role, setRole] = useState("attendee");
   const [remember, setRemember] = useState(false);
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -55,6 +62,7 @@ export default function RegisterPage() {
         email: emailTrim,
         username: usernameTrim,
         password,
+        role,
       });
 
       const tokens = await login({ username: usernameTrim, password });
@@ -154,6 +162,32 @@ export default function RegisterPage() {
                 required
               />
             </div>
+
+            <fieldset className="loginRoleFieldset">
+              <legend className="loginRoleLegend" id="register-role-legend">
+                Account type
+              </legend>
+              <p className="loginRoleHint">
+                Choose how you will use Eventmaster. You can change attendee and organizer later in
+                settings.
+              </p>
+              <div className="loginRoleList" role="radiogroup" aria-labelledby="register-role-legend">
+                {ROLES.map((item) => (
+                  <label key={item.value} className="loginRoleOption">
+                    <input
+                      type="radio"
+                      name="role"
+                      value={item.value}
+                      checked={role === item.value}
+                      onChange={() => setRole(item.value)}
+                    />
+                    <span>
+                      <strong>{item.label}</strong> — {item.hint}
+                    </span>
+                  </label>
+                ))}
+              </div>
+            </fieldset>
 
             <div className="loginRow">
               <label className="loginRemember">

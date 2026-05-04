@@ -2,6 +2,7 @@ import styles from "./EventCard.module.css";
 
 const STATUS_STYLES = {
   draft: styles.statusDraft,
+  pending_approval: styles.statusDraft,
   published: styles.statusPublished,
   cancelled: styles.statusCancelled,
 };
@@ -36,7 +37,12 @@ function formatSchedule(startsAt, endsAt) {
 
 function formatStatus(status) {
   if (!status) return "";
-  const map = { draft: "Draft", published: "Published", cancelled: "Cancelled" };
+  const map = {
+    draft: "Draft",
+    pending_approval: "Pending approval",
+    published: "Published",
+    cancelled: "Cancelled",
+  };
   return map[status] ?? status;
 }
 
@@ -47,12 +53,22 @@ function organizerLabel(event) {
   return null;
 }
 
+function categoryLabel(event) {
+  const c = event.category;
+  if (c && typeof c === "object" && typeof c.name === "string") {
+    const name = c.name.trim();
+    return name || null;
+  }
+  return null;
+}
+
 export default function EventCard({ event }) {
   const { month, day } = formatDateBox(event.starts_at);
   const statusClass =
     STATUS_STYLES[event.status] ?? styles.statusDraft;
   const schedule = formatSchedule(event.starts_at, event.ends_at);
   const organizer = organizerLabel(event);
+  const category = categoryLabel(event);
   const capacityText =
     event.capacity == null ? "No capacity limit" : `Max ${event.capacity} attendees`;
 
@@ -70,6 +86,9 @@ export default function EventCard({ event }) {
           <span className={`${styles.tag} ${statusClass}`}>
             {formatStatus(event.status)}
           </span>
+          {category ? (
+            <span className={`${styles.tag} ${styles.tagCategory}`}>{category}</span>
+          ) : null}
           {event.location?.trim() ? (
             <span className={styles.tag}>{event.location.trim()}</span>
           ) : null}

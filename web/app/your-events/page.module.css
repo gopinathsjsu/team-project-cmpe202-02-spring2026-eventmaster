@@ -23,6 +23,36 @@
 .subtitle {
   margin: 0.55rem 0 0;
   color: #6e7182;
+  max-width: 40rem;
+}
+
+.bannerError {
+  margin: 0 0 1rem;
+  padding: 0.75rem 1rem;
+  border-radius: 0.72rem;
+  background: #fff1f1;
+  color: #8a1f1f;
+  font-size: 0.92rem;
+  line-height: 1.5;
+}
+
+.inlineLink {
+  color: #5b21b6;
+  font-weight: 600;
+  text-decoration: underline;
+}
+
+.loadingLine {
+  margin: 0 0 1rem;
+  color: #6e7182;
+  font-size: 0.95rem;
+}
+
+.emptyState {
+  margin: 0.5rem 0 1.5rem;
+  color: #5c5e6e;
+  font-size: 0.95rem;
+  line-height: 1.5;
 }
 
 .statGrid {
@@ -69,13 +99,22 @@
   font-size: 1.2rem;
 }
 
-.filterButton {
+.createLink {
+  display: inline-flex;
+  align-items: center;
   border: 1px solid #d9dce7;
   background: #ffffff;
   border-radius: 999px;
-  padding: 0.45rem 0.85rem;
+  padding: 0.45rem 0.95rem;
   color: #2b2d3a;
   font-size: 0.85rem;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.createLink:hover {
+  border-color: #9b7fd9;
+  color: #5b21b6;
 }
 
 .eventList {
@@ -122,6 +161,11 @@
   color: #3d4668;
 }
 
+.pending {
+  background: #fff8e6;
+  color: #8a5b00;
+}
+
 .cancelled {
   background: #fdeceb;
   color: #9c2620;
@@ -160,6 +204,39 @@
   color: #2b2d3a;
   font-weight: 600;
   cursor: pointer;
+}
+
+.primaryLink,
+.secondaryLink {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 2.5rem;
+  border-radius: 999px;
+  padding: 0 1.1rem;
+  font-weight: 600;
+  font-size: 0.88rem;
+  text-decoration: none;
+}
+
+.primaryLink {
+  border: none;
+  background: #11131c;
+  color: #ffffff;
+}
+
+.primaryLink:hover {
+  opacity: 0.92;
+}
+
+.secondaryLink {
+  border: 1px solid #d8dbe7;
+  background: #ffffff;
+  color: #2b2d3a;
+}
+
+.secondaryLink:hover {
+  border-color: #c5c9d6;
 }
 
 @media (max-width: 900px) {

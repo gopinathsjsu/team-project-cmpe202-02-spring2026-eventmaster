@@ -72,6 +72,19 @@
   background: #f2ecff;
 }
 
+.navItemDisabled,
+.navItem:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  color: #9b9ca7;
+}
+
+.navItemDisabled:hover,
+.navItem:disabled:hover {
+  color: #9b9ca7;
+  background: transparent;
+}
+
 .organizerButton {
   margin-top: auto;
   border: none;

@@ -3,14 +3,14 @@
 import { useEffect, useMemo, useState } from "react";
 import SearchBar from "../../components/SearchBar";
 import SidePanel from "../../components/SidePanel";
-import { sampleEvents } from "../../lib/sampleEvents";
+import { fetchMyRsvpEvents } from "../../lib/events";
+import { buildGoogleCalendarUrl } from "../../lib/googleCalendar";
 import RequireAuth from "../components/RequireAuth";
 import styles from "./page.module.css";
 
 const GOOGLE_CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || "";
 const GOOGLE_CALENDAR_EMBED_URL =
   process.env.NEXT_PUBLIC_GOOGLE_CALENDAR_EMBED_URL || "";
-const SAVED_EVENTS_KEY = "eventmaster_saved_events";
 const GOOGLE_TOKEN_KEY = "eventmaster_google_calendar_token";
 const GOOGLE_SCOPE = "https://www.googleapis.com/auth/calendar.events";
 
@@ -27,22 +27,6 @@ function formatTime(isoDate) {
     hour: "numeric",
     minute: "2-digit",
   });
-}
-
-function toGoogleDate(isoDate) {
-  return new Date(isoDate).toISOString().replace(/[-:]/g, "").replace(/\.\d{3}Z$/, "Z");
-}
-
-function buildGoogleEventUrl(event) {
-  const params = new URLSearchParams({
-    action: "TEMPLATE",
-    text: event.title,
-    dates: `${toGoogleDate(event.starts_at)}/${toGoogleDate(event.ends_at)}`,
-    details: event.description || "Saved from Eventmaster",
-    location: event.location || "",
-  });
-
-  return `https://calendar.google.com/calendar/render?${params.toString()}`;
 }
 
 async function getGoogleApiErrorMessage(response) {
@@ -73,49 +57,38 @@ function readStoredGoogleToken() {
   }
 }
 
-function readSavedEventIds() {
-  if (typeof window === "undefined") return [];
-  try {
-    const raw = localStorage.getItem(SAVED_EVENTS_KEY);
-    if (!raw) return [];
-    const parsed = JSON.parse(raw);
-    if (!Array.isArray(parsed)) return [];
-    return parsed.map((value) => Number(value)).filter((value) => Number.isFinite(value));
-  } catch {
-    return [];
-  }
-}
-
-function buildMonthDays(events) {
-  const now = new Date();
-  const year = now.getFullYear();
-  const month = now.getMonth();
-
-  const firstDay = new Date(year, month, 1);
-  const lastDay = new Date(year, month + 1, 0);
+function buildMonthDays(events, year, monthIndex) {
+  const firstDay = new Date(year, monthIndex, 1);
+  const lastDay = new Date(year, monthIndex + 1, 0);
   const totalDays = lastDay.getDate();
   const leadingEmpty = firstDay.getDay();
 
+  const eventsInMonth = events.filter((event) => {
+    const d = new Date(event.starts_at);
+    return d.getFullYear() === year && d.getMonth() === monthIndex;
+  });
+
   const eventDays = new Set(
-    events.map((event) => {
-      const date = new Date(event.starts_at);
-      return date.getDate();
-    })
+    eventsInMonth.map((event) => new Date(event.starts_at).getDate())
   );
+
+  const today = new Date();
+  const viewingCurrentMonth =
+    today.getFullYear() === year && today.getMonth() === monthIndex;
 
   const cells = [];
 
   for (let i = 0; i < leadingEmpty; i += 1) {
-    cells.push({ type: "empty", key: `empty-${i}` });
+    cells.push({ type: "empty", key: `empty-${i}-${year}-${monthIndex}` });
   }
 
   for (let day = 1; day <= totalDays; day += 1) {
     cells.push({
       type: "day",
-      key: `day-${day}`,
+      key: `day-${year}-${monthIndex}-${day}`,
       day,
       hasEvent: eventDays.has(day),
-      isToday: day === now.getDate(),
+      isToday: viewingCurrentMonth && day === today.getDate(),
     });
   }
 
@@ -129,21 +102,77 @@ export default function CalendarPage() {
   const [connectError, setConnectError] = useState("");
   const [syncState, setSyncState] = useState("idle");
   const [activeEventId, setActiveEventId] = useState(null);
+  const [savedEvents, setSavedEvents] = useState([]);
+  const [eventsLoading, setEventsLoading] = useState(true);
+  const [eventsError, setEventsError] = useState("");
+  const [viewMonth, setViewMonth] = useState(() => {
+    const t = new Date();
+    return { year: t.getFullYear(), monthIndex: t.getMonth() };
+  });
 
-  const savedEvents = useMemo(() => {
-    const savedIds = readSavedEventIds();
-    if (savedIds.length === 0) {
-      return [...sampleEvents].sort(
-        (a, b) => new Date(a.starts_at).getTime() - new Date(b.starts_at).getTime()
-      );
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadRsvps() {
+      setEventsLoading(true);
+      setEventsError("");
+      try {
+        const list = await fetchMyRsvpEvents();
+        if (cancelled) return;
+        const sorted = [...list].sort(
+          (a, b) => new Date(a.starts_at).getTime() - new Date(b.starts_at).getTime()
+        );
+        setSavedEvents(sorted);
+      } catch (error) {
+        if (!cancelled) {
+          setEventsError(error.message || "Could not load your RSVPs.");
+          setSavedEvents([]);
+        }
+      } finally {
+        if (!cancelled) setEventsLoading(false);
+      }
     }
 
-    return sampleEvents
-      .filter((event) => savedIds.includes(event.id))
-      .sort((a, b) => new Date(a.starts_at).getTime() - new Date(b.starts_at).getTime());
+    loadRsvps();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
-  const calendarCells = useMemo(() => buildMonthDays(savedEvents), [savedEvents]);
+  function goToPrevMonth() {
+    setViewMonth((prev) =>
+      prev.monthIndex === 0
+        ? { year: prev.year - 1, monthIndex: 11 }
+        : { year: prev.year, monthIndex: prev.monthIndex - 1 }
+    );
+  }
+
+  function goToNextMonth() {
+    setViewMonth((prev) =>
+      prev.monthIndex === 11
+        ? { year: prev.year + 1, monthIndex: 0 }
+        : { year: prev.year, monthIndex: prev.monthIndex + 1 }
+    );
+  }
+
+  function goToToday() {
+    const t = new Date();
+    setViewMonth({ year: t.getFullYear(), monthIndex: t.getMonth() });
+  }
+
+  const calendarCells = useMemo(
+    () => buildMonthDays(savedEvents, viewMonth.year, viewMonth.monthIndex),
+    [savedEvents, viewMonth.year, viewMonth.monthIndex]
+  );
+
+  const monthLabel = useMemo(
+    () =>
+      new Date(viewMonth.year, viewMonth.monthIndex, 1).toLocaleDateString("en-US", {
+        month: "long",
+        year: "numeric",
+      }),
+    [viewMonth.year, viewMonth.monthIndex]
+  );
   const upcomingCount = savedEvents.filter(
     (event) => new Date(event.starts_at).getTime() > Date.now()
   ).length;
@@ -299,21 +328,23 @@ export default function CalendarPage() {
 
         <main className={styles.content}>
           <SearchBar
-            eventPlaceholder="Search saved events..."
+            eventPlaceholder="Search RSVP'd events..."
             locationPlaceholder="Search event locations..."
           />
 
           <section className={styles.headerSection}>
             <h1 className={styles.title}>Your Calendar</h1>
             <p className={styles.subtitle}>
-              Track saved events and sync them to Google Calendar.
+              Events you&apos;ve RSVPed to on Eventmaster — sync them to Google Calendar if you like.
             </p>
           </section>
 
           <section className={styles.statGrid}>
             <article className={styles.statCard}>
-              <p className={styles.statLabel}>Saved Events</p>
-              <p className={styles.statValue}>{savedEvents.length}</p>
+              <p className={styles.statLabel}>RSVP&apos;d events</p>
+              <p className={styles.statValue}>
+                {eventsLoading ? "…" : savedEvents.length}
+              </p>
             </article>
             <article className={styles.statCard}>
               <p className={styles.statLabel}>Upcoming This Year</p>
@@ -329,7 +360,7 @@ export default function CalendarPage() {
             <div>
               <h2 className={styles.sectionTitle}>Google Calendar Integration</h2>
               <p className={styles.sectionText}>
-                Connect your Google account and quickly add any saved event to your calendar.
+                Connect your Google account and push RSVP&apos;d events into Google Calendar with one click.
               </p>
             </div>
 
@@ -354,13 +385,34 @@ export default function CalendarPage() {
           <section className={styles.mainGrid}>
             <article className={styles.monthCard}>
               <div className={styles.monthHeader}>
-                <h3 className={styles.monthTitle}>
-                  {new Date().toLocaleDateString("en-US", { month: "long", year: "numeric" })}
-                </h3>
-                <p className={styles.legend}>
-                  <span className={styles.legendDot} />
-                  Days with saved events
-                </p>
+                <div className={styles.monthNav}>
+                  <button
+                    type="button"
+                    className={styles.monthArrow}
+                    onClick={goToPrevMonth}
+                    aria-label="Previous month"
+                  >
+                    ‹
+                  </button>
+                  <h3 className={styles.monthTitle}>{monthLabel}</h3>
+                  <button
+                    type="button"
+                    className={styles.monthArrow}
+                    onClick={goToNextMonth}
+                    aria-label="Next month"
+                  >
+                    ›
+                  </button>
+                </div>
+                <div className={styles.monthHeaderAside}>
+                  <button type="button" className={styles.todayButton} onClick={goToToday}>
+                    Today
+                  </button>
+                  <p className={styles.legend}>
+                    <span className={styles.legendDot} />
+                    Days with RSVP&apos;d events
+                  </p>
+                </div>
               </div>
 
               <div className={styles.weekdays}>
@@ -388,11 +440,18 @@ export default function CalendarPage() {
             </article>
 
             <article className={styles.savedEventsCard}>
-              <h3 className={styles.sectionTitle}>Saved Event List</h3>
+              <h3 className={styles.sectionTitle}>Your RSVP&apos;d events</h3>
 
-              {savedEvents.length === 0 ? (
+              {eventsError ? (
+                <p className={styles.errorText}>{eventsError}</p>
+              ) : null}
+
+              {eventsLoading ? (
+                <p className={styles.emptyState}>Loading your events…</p>
+              ) : savedEvents.length === 0 ? (
                 <p className={styles.emptyState}>
-                  You have no saved events yet. Save events from Browse Events to show them here.
+                  You haven&apos;t RSVPed to any events yet. Open an event from the dashboard and tap RSVP —
+                  it will show up here.
                 </p>
               ) : (
                 <div className={styles.eventList}>
@@ -415,7 +474,7 @@ export default function CalendarPage() {
                             return;
                           }
 
-                          window.open(buildGoogleEventUrl(event), "_blank", "noopener,noreferrer");
+                          window.open(buildGoogleCalendarUrl(event), "_blank", "noopener,noreferrer");
                         }}
                       >
                         {activeEventId === event.id && syncState === "syncing"

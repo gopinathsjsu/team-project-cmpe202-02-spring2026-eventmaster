@@ -57,6 +57,18 @@
   gap: 1.15rem;
 }
 
+.upcomingInlineMessage {
+  grid-column: 1 / -1;
+  margin: 0;
+  color: #6e7182;
+  font-size: 0.95rem;
+  line-height: 1.45;
+}
+
+.upcomingInlineMessage[role="alert"] {
+  color: #b42318;
+}
+
 @media (max-width: 1200px) {
   .recommendedGrid {
     grid-template-columns: 1fr;

@@ -95,3 +95,15 @@ export async function fetchMe(accessToken) {
     },
   });
 }
+
+export async function patchMe(accessToken, body) {
+  return jsonRequest("/auth/me/", {
+    method: "PATCH",
+    body: JSON.stringify(body),
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+    },
+  });
+}
+
+export { API_BASE_URL };

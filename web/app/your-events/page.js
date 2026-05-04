@@ -1,47 +1,100 @@
 "use client";
 
+import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import SearchBar from "../../components/SearchBar";
 import SidePanel from "../../components/SidePanel";
+import { fetchMyOrganizedEvents } from "../../lib/events";
 import RequireAuth from "../components/RequireAuth";
 import styles from "./page.module.css";
 
-const yourEvents = [
-  {
-    id: 1,
-    title: "Startup Seminar & Technical Convention 2026",
-    location: "San Mateo, CA",
-    startsAt: "Jun 29, 2026 · 9:00 AM",
-    attendees: 182,
-    status: "published",
-  },
-  {
-    id: 2,
-    title: "Silicon Valley Wine Tasting Night 2026",
-    location: "Saratoga, CA",
-    startsAt: "Apr 14, 2026 · 7:30 PM",
-    attendees: 64,
-    status: "published",
-  },
-  {
-    id: 3,
-    title: "AI Product Leadership Meetup",
-    location: "San Jose, CA",
-    startsAt: "May 12, 2026 · 6:00 PM",
-    attendees: 0,
-    status: "draft",
-  },
-];
+function formatScheduleLine(startsAt, endsAt) {
+  const start = new Date(startsAt);
+  const end = new Date(endsAt);
+  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) return "—";
+  const datePart = start.toLocaleString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+  const timeFmt = { hour: "numeric", minute: "2-digit" };
+  return `${datePart} · ${start.toLocaleString("en-US", timeFmt)} – ${end.toLocaleString(
+    "en-US",
+    timeFmt
+  )}`;
+}
 
-const statusTone = {
-  published: styles.published,
-  draft: styles.draft,
-  cancelled: styles.cancelled,
-};
+function formatLocationSummary(event) {
+  const loc = event.location?.trim();
+  if (event.venue_type === "online") {
+    return event.online_url?.trim() ? "Online event" : "Online";
+  }
+  if (event.venue_type === "hybrid") {
+    return loc ? `${loc} · + online` : "Hybrid";
+  }
+  return loc || "—";
+}
+
+function statusLabel(status) {
+  const map = {
+    draft: "Draft",
+    pending_approval: "Pending approval",
+    published: "Published",
+    cancelled: "Cancelled",
+  };
+  return map[status] ?? status;
+}
 
 export default function YourEventsPage() {
-  const publishedCount = yourEvents.filter((event) => event.status === "published").length;
-  const draftCount = yourEvents.filter((event) => event.status === "draft").length;
-  const totalAttendees = yourEvents.reduce((sum, event) => sum + event.attendees, 0);
+  const [events, setEvents] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [isForbidden, setIsForbidden] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    setError("");
+    fetchMyOrganizedEvents()
+      .then((list) => {
+        if (!cancelled) {
+          setEvents(Array.isArray(list) ? list : []);
+          setIsForbidden(false);
+        }
+      })
+      .catch((err) => {
+        if (!cancelled) {
+          setEvents([]);
+          setIsForbidden(err.code === "FORBIDDEN");
+          setError(err.message || "Could not load events.");
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const stats = useMemo(() => {
+    const publishedCount = events.filter((e) => e.status === "published").length;
+    const draftReviewCount = events.filter((e) =>
+      ["draft", "pending_approval"].includes(e.status)
+    ).length;
+    return {
+      publishedCount,
+      draftReviewCount,
+      total: events.length,
+    };
+  }, [events]);
+
+  const statusTone = {
+    published: styles.published,
+    draft: styles.draft,
+    pending_approval: styles.pending,
+    cancelled: styles.cancelled,
+  };
 
   return (
     <RequireAuth>
@@ -57,58 +110,100 @@ export default function YourEventsPage() {
           <section className={styles.headerSection}>
             <h1 className={styles.title}>Your Events</h1>
             <p className={styles.subtitle}>
-              Manage drafts, published listings, and your attendance totals.
+              Events you create and manage as this account (organizers and admins).
             </p>
           </section>
 
-          <section className={styles.statGrid}>
-            <article className={styles.statCard}>
-              <p className={styles.statLabel}>Published Events</p>
-              <p className={styles.statValue}>{publishedCount}</p>
-            </article>
-            <article className={styles.statCard}>
-              <p className={styles.statLabel}>Draft Events</p>
-              <p className={styles.statValue}>{draftCount}</p>
-            </article>
-            <article className={styles.statCard}>
-              <p className={styles.statLabel}>Total Attendees</p>
-              <p className={styles.statValue}>{totalAttendees}</p>
-            </article>
-          </section>
+          {error && (
+            <p className={styles.bannerError} role="alert">
+              {error}{" "}
+              {isForbidden ? (
+                <Link href="/settings" className={styles.inlineLink}>
+                  Switch account type in settings
+                </Link>
+              ) : null}
+            </p>
+          )}
 
-          <section className={styles.listSection}>
-            <div className={styles.listHeader}>
-              <h2 className={styles.listTitle}>Event Library</h2>
-              <button type="button" className={styles.filterButton}>
-                Filter by Status
-              </button>
-            </div>
+          {loading && <p className={styles.loadingLine}>Loading your events…</p>}
 
-            <div className={styles.eventList}>
-              {yourEvents.map((event) => (
-                <article key={event.id} className={styles.eventCard}>
-                  <div className={styles.eventTopRow}>
-                    <h3 className={styles.eventTitle}>{event.title}</h3>
-                    <span className={`${styles.statusPill} ${statusTone[event.status]}`}>
-                      {event.status}
-                    </span>
-                  </div>
-                  <p className={styles.metaLine}>{event.location}</p>
-                  <p className={styles.metaLine}>{event.startsAt}</p>
-                  <p className={styles.metaLine}>Attendees: {event.attendees}</p>
+          {!loading && !error && (
+            <section className={styles.statGrid}>
+              <article className={styles.statCard}>
+                <p className={styles.statLabel}>Published</p>
+                <p className={styles.statValue}>{stats.publishedCount}</p>
+              </article>
+              <article className={styles.statCard}>
+                <p className={styles.statLabel}>Draft or pending review</p>
+                <p className={styles.statValue}>{stats.draftReviewCount}</p>
+              </article>
+              <article className={styles.statCard}>
+                <p className={styles.statLabel}>Total events</p>
+                <p className={styles.statValue}>{stats.total}</p>
+              </article>
+            </section>
+          )}
 
-                  <div className={styles.actions}>
-                    <button type="button" className={styles.primaryButton}>
-                      Manage Event
-                    </button>
-                    <button type="button" className={styles.secondaryButton}>
-                      View Registrations
-                    </button>
-                  </div>
-                </article>
-              ))}
-            </div>
-          </section>
+          {!loading && !error && events.length === 0 && (
+            <p className={styles.emptyState}>
+              You have not created any events yet.{" "}
+              <Link href="/create-event" className={styles.inlineLink}>
+                Create an event
+              </Link>
+            </p>
+          )}
+
+          {!loading && !error && events.length > 0 && (
+            <section className={styles.listSection}>
+              <div className={styles.listHeader}>
+                <h2 className={styles.listTitle}>Event library</h2>
+                <Link href="/create-event" className={styles.createLink}>
+                  + New event
+                </Link>
+              </div>
+
+              <div className={styles.eventList}>
+                {events.map((event) => (
+                  <article key={event.id} className={styles.eventCard}>
+                    <div className={styles.eventTopRow}>
+                      <h3 className={styles.eventTitle}>{event.title}</h3>
+                      <span
+                        className={`${styles.statusPill} ${
+                          statusTone[event.status] ?? styles.draft
+                        }`}
+                      >
+                        {statusLabel(event.status)}
+                      </span>
+                    </div>
+                    <p className={styles.metaLine}>{formatLocationSummary(event)}</p>
+                    <p className={styles.metaLine}>
+                      {formatScheduleLine(event.starts_at, event.ends_at)}
+                    </p>
+                    {event.category?.name ? (
+                      <p className={styles.metaLine}>Category · {event.category.name}</p>
+                    ) : null}
+                    <p className={styles.metaLine}>
+                      {event.capacity == null
+                        ? "No capacity limit set"
+                        : `Capacity · ${event.capacity}`}
+                    </p>
+
+                    <div className={styles.actions}>
+                      <Link href={`/event?id=${event.id}`} className={styles.primaryLink}>
+                        View / manage
+                      </Link>
+                      <Link
+                        href={`/manage-attendees?event=${event.id}`}
+                        className={styles.secondaryLink}
+                      >
+                        Registrations
+                      </Link>
+                    </div>
+                  </article>
+                ))}
+              </div>
+            </section>
+          )}
         </main>
       </div>
     </RequireAuth>

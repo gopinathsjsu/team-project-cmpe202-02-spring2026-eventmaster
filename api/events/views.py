@@ -1,3 +1,206 @@
-from django.shortcuts import render
+from django.db import IntegrityError
+from django.http import Http404
+from django.shortcuts import get_object_or_404
+from django.utils import timezone
+from rest_framework import generics, permissions, status
+from rest_framework.response import Response
+from rest_framework.views import APIView
 
-# Create your views here.
+from accounts.permissions import IsOrganizerOrAdmin, IsRoleAdmin
+from events.models import Category, Event, EventRsvp
+from events.serializers import (
+    CategorySerializer,
+    EventCreateSerializer,
+    EventDetailSerializer,
+    EventReadSerializer,
+)
+
+
+class EventRetrieveView(generics.RetrieveAPIView):
+    """Single event: published (anyone) or draft owned by the authenticated organizer."""
+
+    permission_classes = [permissions.AllowAny]
+    serializer_class = EventDetailSerializer
+    queryset = (
+        Event.objects.select_related("category", "organizer")
+        .prefetch_related("rsvps")
+        .all()
+    )
+
+    def get_object(self):
+        obj = super().get_object()
+        user = self.request.user
+        if obj.status == Event.Status.PUBLISHED:
+            return obj
+        if user.is_authenticated and obj.organizer_id == user.id:
+            return obj
+        raise Http404()
+
+
+class EventRsvpView(APIView):
+    """Create or cancel RSVP for the authenticated user (published events only)."""
+
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request, pk):
+        event = get_object_or_404(
+            Event.objects.select_related("category", "organizer").prefetch_related("rsvps"),
+            pk=pk,
+        )
+        if event.status != Event.Status.PUBLISHED:
+            return Response(
+                {"detail": "RSVP is only available for published events."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        if event.organizer_id == request.user.id:
+            return Response(
+                {"detail": "Organizers use event management tools instead of RSVP."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        count = event.rsvps.count()
+        if event.capacity is not None and count >= event.capacity:
+            return Response(
+                {"detail": "This event is at capacity."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        try:
+            EventRsvp.objects.create(user=request.user, event=event)
+        except IntegrityError:
+            return Response(
+                {"detail": "You have already RSVPed for this event."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        event.refresh_from_db()
+        data = EventDetailSerializer(event, context={"request": request}).data
+        return Response(data, status=status.HTTP_201_CREATED)
+
+    def delete(self, request, pk):
+        event = get_object_or_404(Event, pk=pk)
+        deleted, _ = EventRsvp.objects.filter(user=request.user, event=event).delete()
+        if deleted == 0:
+            return Response(
+                {"detail": "No RSVP found for this event."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class MyRsvpEventListView(generics.ListAPIView):
+    """Events the current user has RSVPed to (for calendar / attendee view)."""
+
+    permission_classes = [permissions.IsAuthenticated]
+    serializer_class = EventReadSerializer
+
+    def get_queryset(self):
+        return (
+            Event.objects.filter(rsvps__user=self.request.user)
+            .select_related("category", "organizer")
+            .distinct()
+            .order_by("starts_at")
+        )
+
+
+class CategoryListView(generics.ListAPIView):
+    """Public list of categories for event discovery and create-event form."""
+
+    queryset = Category.objects.all()
+    serializer_class = CategorySerializer
+    permission_classes = [permissions.AllowAny]
+
+
+class AdminPendingEventListView(generics.ListAPIView):
+    """Events awaiting moderator approval (admin app role or Django superuser)."""
+
+    serializer_class = EventReadSerializer
+    permission_classes = [permissions.IsAuthenticated, IsRoleAdmin]
+
+    def get_queryset(self):
+        return (
+            Event.objects.filter(status=Event.Status.PENDING_APPROVAL)
+            .select_related("category", "organizer")
+            .order_by("created_at")
+        )
+
+
+class EventApproveView(APIView):
+    permission_classes = [permissions.IsAuthenticated, IsRoleAdmin]
+
+    def post(self, request, pk):
+        event = get_object_or_404(
+            Event.objects.select_related("category", "organizer"),
+            pk=pk,
+        )
+        if event.status != Event.Status.PENDING_APPROVAL:
+            return Response(
+                {"detail": "This event is not awaiting approval."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        event.status = Event.Status.PUBLISHED
+        event.save(update_fields=["status"])
+        return Response(
+            EventReadSerializer(event, context={"request": request}).data,
+            status=status.HTTP_200_OK,
+        )
+
+
+class EventRejectView(APIView):
+    permission_classes = [permissions.IsAuthenticated, IsRoleAdmin]
+
+    def post(self, request, pk):
+        event = get_object_or_404(
+            Event.objects.select_related("category", "organizer"),
+            pk=pk,
+        )
+        if event.status != Event.Status.PENDING_APPROVAL:
+            return Response(
+                {"detail": "This event is not awaiting approval."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        event.status = Event.Status.DRAFT
+        event.save(update_fields=["status"])
+        return Response(
+            EventReadSerializer(event, context={"request": request}).data,
+            status=status.HTTP_200_OK,
+        )
+
+
+class EventUpcomingListView(generics.ListAPIView):
+    """Published events with a future start time — for dashboard discovery (JSON)."""
+
+    serializer_class = EventReadSerializer
+    permission_classes = [permissions.AllowAny]
+
+    def get_queryset(self):
+        return (
+            Event.objects.filter(
+                status=Event.Status.PUBLISHED,
+                starts_at__gte=timezone.now(),
+            )
+            .select_related("category", "organizer")
+            .order_by("starts_at")[:24]
+        )
+
+
+class EventListCreateView(generics.ListCreateAPIView):
+    """Organizers create events; list returns the current user's events."""
+
+    permission_classes = [permissions.IsAuthenticated, IsOrganizerOrAdmin]
+
+    def get_queryset(self):
+        return (
+            Event.objects.filter(organizer=self.request.user)
+            .select_related("category", "organizer")
+            .order_by("-created_at")
+        )
+
+    def get_serializer_class(self):
+        if self.request.method == "POST":
+            return EventCreateSerializer
+        return EventReadSerializer
+
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        event = serializer.save()
+        read = EventReadSerializer(event, context={"request": request})
+        return Response(read.data, status=201)

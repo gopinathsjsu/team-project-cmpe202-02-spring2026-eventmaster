@@ -53,6 +53,11 @@
   font-weight: 600;
 }
 
+.tagCategory {
+  background: #ede8fb;
+  color: #4a3d7a;
+}
+
 .statusPublished {
   background: #d7f2db;
   color: #276431;

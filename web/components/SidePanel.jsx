@@ -1,41 +1,56 @@
 "use client";
+
+import { useEffect, useState } from "react";
 import styles from "./SidePanel.module.css";
 import { usePathname, useRouter } from "next/navigation";
+import { getStoredUser } from "../lib/auth";
 
-const mainItems = [
-  "Overview",
-  "Create an Event",
-  "Browse Events",
-  "Your Events",
-  "Your Calendar",
-  "Orders",
-  "Notifications",
+const MAIN_NAV = [
+  { label: "Overview", href: "/dashboard", organizerOnly: false },
+  { label: "Create an Event", href: "/create-event", organizerOnly: true },
+  { label: "Your Events", href: "/your-events", organizerOnly: false },
+  { label: "Your Calendar", href: "/calender", organizerOnly: false },
+  { label: "RSVP Tracking", href: "/rsvp-tracking", organizerOnly: true },
+  { label: "Manage Attendees", href: "/manage-attendees", organizerOnly: true },
+  { label: "Notifications", href: null, organizerOnly: false },
 ];
 
-const secondaryItems = ["Administration", "Support"];
+const SECONDARY_NAV = [
+  { label: "Administration", href: "/administration/approvals", adminOnly: true },
+];
+
+function canSeeOrganizerNav(role) {
+  return role === "organizer" || role === "admin";
+}
 
 export default function SidePanel() {
   const router = useRouter();
   const pathname = usePathname();
+  const [role, setRole] = useState(null);
 
-  const routesByLabel = {
-    Overview: "/dashboard",
-    "Create an Event": "/create-event",
-    "Your Events": "/your-events",
-    "Your Calendar": "/calender",
-  };
+  useEffect(() => {
+    const user = getStoredUser();
+    setRole(user?.role ?? null);
+  }, [pathname]);
 
-  const handleNavigation = (label) => {
-    const route = routesByLabel[label];
-    if (!route) return;
-    router.push(route);
-  };
+  const organizerOk = canSeeOrganizerNav(role);
+
+  const visibleMain = MAIN_NAV.filter(
+    (item) => !item.organizerOnly || organizerOk
+  );
+
+  const visibleSecondary = SECONDARY_NAV.filter(
+    (item) => !item.adminOnly || role === "admin"
+  );
+
+  function navigate(href) {
+    if (href) router.push(href);
+  }
 
   return (
     <aside className={styles.panel}>
       <div className={styles.brandRow}>
-        <span className={styles.brandIcon}>
-        </span>
+        <span className={styles.brandIcon}></span>
         <span
           className={styles.brandName}
           onClick={() => router.push("/dashboard")}
@@ -46,33 +61,50 @@ export default function SidePanel() {
 
       <div className={styles.section}>
         <p className={styles.sectionLabel}>MAIN</p>
-        {mainItems.map((item, index) => (
-          // index is intentionally unused; kept for future ordering/styling needs
+        {visibleMain.map((item) => (
           <button
-            key={item}
+            key={item.label}
+            type="button"
             className={`${styles.navItem} ${
-              routesByLabel[item] && pathname === routesByLabel[item]
-                ? styles.active
-                : ""
-            }`}
-            onClick={() => handleNavigation(item)}
+              item.href && pathname === item.href ? styles.active : ""
+            } ${!item.href ? styles.navItemDisabled : ""}`}
+            onClick={() => navigate(item.href)}
+            disabled={!item.href}
           >
-            {item}
+            {item.label}
           </button>
         ))}
       </div>
 
       <div className={styles.section}>
         <p className={styles.sectionLabel}>OTHERS</p>
-        {secondaryItems.map((item) => (
-          <button key={item} className={styles.navItem}>
-            {item}
+        {visibleSecondary.map((item) => (
+          <button
+            key={item.label}
+            type="button"
+            className={`${styles.navItem} ${
+              item.href && pathname === item.href ? styles.active : ""
+            } ${!item.href ? styles.navItemDisabled : ""}`}
+            onClick={() => navigate(item.href)}
+            disabled={!item.href}
+          >
+            {item.label}
           </button>
         ))}
       </div>
 
-      <button className={styles.organizerButton}>Become an Organizer</button>
-      <button className={styles.helpButton}>Help &amp; Feedback</button>
+      {role === "attendee" && (
+        <button
+          type="button"
+          className={styles.organizerButton}
+          onClick={() => router.push("/settings")}
+        >
+          Become an Organizer
+        </button>
+      )}
+      <button type="button" className={styles.helpButton}>
+        Help &amp; Feedback
+      </button>
     </aside>
   );
 }
