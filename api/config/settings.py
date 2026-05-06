@@ -18,20 +18,32 @@ import os
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 
+def env_bool(name, default=False):
+    value = os.environ.get(name)
+    if value is None:
+        return default
+    return value.strip().lower() in {"1", "true", "yes", "on"}
+
+
+def env_csv(name, default=""):
+    raw = os.environ.get(name, default)
+    return [item.strip() for item in raw.split(",") if item.strip()]
+
+
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/6.0/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-%by(7!q*)&y216(71^(b#q!z%a95%&b1je4_g-ba$tx1fqms(e'
+SECRET_KEY = os.environ.get(
+    "DJANGO_SECRET_KEY",
+    "django-insecure-local-dev-key-change-in-production",
+)
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = env_bool("DJANGO_DEBUG", default=True)
 
-if DEBUG:
-    ALLOWED_HOSTS = ["localhost", "127.0.0.1", "api", "0.0.0.0"]
-else:
-    # in prod you’ll set this to your ALB/domain
-    ALLOWED_HOSTS = os.environ.get("ALLOWED_HOSTS", "").split(",")
+DEFAULT_ALLOWED_HOSTS = ["localhost", "127.0.0.1", "api", "0.0.0.0"]
+ALLOWED_HOSTS = DEFAULT_ALLOWED_HOSTS + env_csv("ALLOWED_HOSTS")
 
 # Application definition
 
@@ -87,11 +99,16 @@ WSGI_APPLICATION = 'config.wsgi.application'
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.postgresql",
-        "NAME": os.environ["POSTGRES_DB"],
-        "USER": os.environ["POSTGRES_USER"],
-        "PASSWORD": os.environ["POSTGRES_PASSWORD"],
-        "HOST": os.environ.get("POSTGRES_HOST", "db"),
-        "PORT": os.environ.get("POSTGRES_PORT", "5432"),
+        "NAME": os.environ.get("POSTGRES_DB") or os.environ.get("RDS_DB_NAME"),
+        "USER": os.environ.get("POSTGRES_USER") or os.environ.get("RDS_USERNAME"),
+        "PASSWORD": os.environ.get("POSTGRES_PASSWORD")
+        or os.environ.get("RDS_PASSWORD"),
+        "HOST": os.environ.get("POSTGRES_HOST")
+        or os.environ.get("RDS_HOSTNAME")
+        or "db",
+        "PORT": os.environ.get("POSTGRES_PORT")
+        or os.environ.get("RDS_PORT")
+        or "5432",
     }
 }
 
@@ -131,10 +148,11 @@ SIMPLE_JWT = {
     "ROTATE_REFRESH_TOKENS": False,
 }
 
-CORS_ALLOWED_ORIGINS = [
+DEFAULT_CORS_ALLOWED_ORIGINS = [
     "http://localhost:3000",
     "http://127.0.0.1:3000",
 ]
+CORS_ALLOWED_ORIGINS = DEFAULT_CORS_ALLOWED_ORIGINS + env_csv("CORS_ALLOWED_ORIGINS")
 
 # Allow Authorization header for JWT requests from the frontend.
 CORS_ALLOW_HEADERS = [
@@ -148,6 +166,12 @@ CORS_ALLOW_HEADERS = [
     "x-csrftoken",
     "x-requested-with",
 ]
+
+CSRF_TRUSTED_ORIGINS = env_csv("CSRF_TRUSTED_ORIGINS")
+
+# Trust AWS ALB/ELB proxy headers in production.
+SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+USE_X_FORWARDED_HOST = True
 
 # Internationalization
 # https://docs.djangoproject.com/en/6.0/topics/i18n/
