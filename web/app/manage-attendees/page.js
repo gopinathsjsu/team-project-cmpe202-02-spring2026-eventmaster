@@ -1,11 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
-import SearchBar from "../../components/SearchBar";
-
 import SidePanel from "../../components/SidePanel";
 import {
   cancelRegistrationForUser,

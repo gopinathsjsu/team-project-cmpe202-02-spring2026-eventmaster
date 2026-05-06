@@ -38,7 +38,7 @@ services:
       [
         "sh",
         "-c",
-        "if [ ! -x node_modules/.bin/next ]; then npm ci; fi && exec npm run dev",
+        "npm ci && exec npm run dev",
       ]
     environment:
       NEXT_PUBLIC_API_BASE_URL: http://localhost:8000/api
