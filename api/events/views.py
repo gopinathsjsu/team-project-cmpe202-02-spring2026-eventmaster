@@ -15,6 +15,7 @@ from events.serializers import (
     EventCreateSerializer,
     EventDetailSerializer,
     EventReadSerializer,
+    EventRegistrationSerializer,
     EventUpdateSerializer,
 )
 
@@ -41,7 +42,7 @@ class EventRetrieveView(generics.RetrieveAPIView):
 
 
 class EventRsvpView(APIView):
-    """Create or cancel RSVP for the authenticated user (published events only)."""
+    """Register or unregister the authenticated user for a published event."""
 
     permission_classes = [permissions.IsAuthenticated]
 
@@ -52,12 +53,12 @@ class EventRsvpView(APIView):
         )
         if event.status != Event.Status.PUBLISHED:
             return Response(
-                {"detail": "RSVP is only available for published events."},
+                {"detail": "Registration is only available for published events."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
         if event.organizer_id == request.user.id:
             return Response(
-                {"detail": "Organizers use event management tools instead of RSVP."},
+                {"detail": "Organizers manage attendance from Manage attendees instead of registering."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
         count = event.rsvps.count()
@@ -70,7 +71,7 @@ class EventRsvpView(APIView):
             EventRsvp.objects.create(user=request.user, event=event)
         except IntegrityError:
             return Response(
-                {"detail": "You have already RSVPed for this event."},
+                {"detail": "You are already registered for this event."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
         event.refresh_from_db()
@@ -82,14 +83,51 @@ class EventRsvpView(APIView):
         deleted, _ = EventRsvp.objects.filter(user=request.user, event=event).delete()
         if deleted == 0:
             return Response(
-                {"detail": "No RSVP found for this event."},
+                {"detail": "No registration found for this event."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class EventRegistrationListView(generics.ListAPIView):
+    """List users registered for an event (organizer owner or admin)."""
+
+    permission_classes = [permissions.IsAuthenticated, IsOrganizerOrAdmin]
+    serializer_class = EventRegistrationSerializer
+
+    def get_queryset(self):
+        event = get_object_or_404(Event.objects.select_related("organizer"), pk=self.kwargs["pk"])
+        role = user_role(self.request.user)
+        if role != Profile.Role.ADMIN and event.organizer_id != self.request.user.id:
+            raise Http404()
+        return (
+            EventRsvp.objects.filter(event=event)
+            .select_related("user")
+            .order_by("created_at")
+        )
+
+
+class EventRegistrationDestroyView(APIView):
+    """Remove a user's registration for an event (organizer owner or admin)."""
+
+    permission_classes = [permissions.IsAuthenticated, IsOrganizerOrAdmin]
+
+    def delete(self, request, pk, user_id):
+        event = get_object_or_404(Event.objects.select_related("organizer"), pk=pk)
+        role = user_role(request.user)
+        if role != Profile.Role.ADMIN and event.organizer_id != request.user.id:
+            raise Http404()
+        deleted, _ = EventRsvp.objects.filter(event=event, user_id=user_id).delete()
+        if deleted == 0:
+            return Response(
+                {"detail": "No registration found for this user."},
                 status=status.HTTP_404_NOT_FOUND,
             )
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 class MyRsvpEventListView(generics.ListAPIView):
-    """Events the current user has RSVPed to (for calendar / attendee view)."""
+    """Events the current user has registered for (calendar / attendee view)."""
 
     permission_classes = [permissions.IsAuthenticated]
     serializer_class = EventReadSerializer

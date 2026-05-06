@@ -1,7 +1,7 @@
 from django.utils.dateparse import parse_datetime
 from rest_framework import serializers
 
-from events.models import Category, Event
+from events.models import Category, Event, EventRsvp
 
 
 class CategorySerializer(serializers.ModelSerializer):
@@ -41,6 +41,17 @@ class EventReadSerializer(serializers.ModelSerializer):
             "created_at",
             "updated_at",
         )
+
+
+class EventRegistrationSerializer(serializers.ModelSerializer):
+    """One attendee registration row for organizer manage-attendees views."""
+
+    user_id = serializers.IntegerField(source="user.id", read_only=True)
+    username = serializers.CharField(source="user.username", read_only=True)
+
+    class Meta:
+        model = EventRsvp
+        fields = ("user_id", "username", "created_at")
 
 
 class EventDetailSerializer(EventReadSerializer):

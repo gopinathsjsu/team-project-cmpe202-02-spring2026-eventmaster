@@ -8,6 +8,10 @@ import styles from "./SearchBar.module.css";
 export default function SearchBar({
   eventPlaceholder = "Search an event...",
   locationPlaceholder = "Search a location...",
+  eventValue,
+  onEventChange,
+  locationValue,
+  onLocationChange,
   profileLabel = "johnnyapples@gmail.com",
   onSignOut,
 }) {
@@ -64,10 +68,30 @@ export default function SearchBar({
     router.push("/settings");
   }
 
+  const eventInputProps =
+    typeof onEventChange === "function"
+      ? { value: eventValue ?? "", onChange: (e) => onEventChange(e.target.value) }
+      : {};
+  const locationInputProps =
+    typeof onLocationChange === "function"
+      ? {
+          value: locationValue ?? "",
+          onChange: (e) => onLocationChange(e.target.value),
+        }
+      : {};
+
   return (
     <header className={styles.topBar}>
-      <input className={styles.searchInput} placeholder={eventPlaceholder} />
-      <input className={styles.searchInput} placeholder={locationPlaceholder} />
+      <input
+        className={styles.searchInput}
+        placeholder={eventPlaceholder}
+        {...eventInputProps}
+      />
+      <input
+        className={styles.searchInput}
+        placeholder={locationPlaceholder}
+        {...locationInputProps}
+      />
       <div className={styles.profileDropdown} ref={dropdownRef}>
         <button
           type="button"

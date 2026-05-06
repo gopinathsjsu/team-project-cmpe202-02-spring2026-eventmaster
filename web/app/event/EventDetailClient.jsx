@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { getStoredUser } from "../../lib/auth";
-import { cancelEventRsvp, createEventRsvp, fetchEvent } from "../../lib/events";
+import { fetchEvent, registerForEvent, unregisterFromEvent } from "../../lib/events";
 import { buildGoogleCalendarUrl } from "../../lib/googleCalendar";
 import styles from "./page.module.css";
 
@@ -61,8 +61,8 @@ export default function EventDetailClient({ eventId }) {
   const [event, setEvent] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [rsvpError, setRsvpError] = useState("");
-  const [rsvpBusy, setRsvpBusy] = useState(false);
+  const [registerError, setRegisterError] = useState("");
+  const [registerBusy, setRegisterBusy] = useState(false);
   const [user, setUser] = useState(null);
 
   useEffect(() => {
@@ -93,31 +93,31 @@ export default function EventDetailClient({ eventId }) {
     load();
   }, [load]);
 
-  async function handleRsvp() {
+  async function handleRegister() {
     if (!event) return;
-    setRsvpError("");
-    setRsvpBusy(true);
+    setRegisterError("");
+    setRegisterBusy(true);
     try {
-      const updated = await createEventRsvp(event.id);
+      const updated = await registerForEvent(event.id);
       setEvent(updated);
     } catch (e) {
-      setRsvpError(e.message || "RSVP failed.");
+      setRegisterError(e.message || "Registration failed.");
     } finally {
-      setRsvpBusy(false);
+      setRegisterBusy(false);
     }
   }
 
-  async function handleCancelRsvp() {
+  async function handleUnregister() {
     if (!event) return;
-    setRsvpError("");
-    setRsvpBusy(true);
+    setRegisterError("");
+    setRegisterBusy(true);
     try {
-      await cancelEventRsvp(event.id);
+      await unregisterFromEvent(event.id);
       await load();
     } catch (e) {
-      setRsvpError(e.message || "Could not cancel RSVP.");
+      setRegisterError(e.message || "Could not unregister.");
     } finally {
-      setRsvpBusy(false);
+      setRegisterBusy(false);
     }
   }
 
@@ -210,16 +210,16 @@ export default function EventDetailClient({ eventId }) {
           </div>
         </header>
 
-        <section className={styles.rsvpCard} aria-label="RSVP">
+        <section className={styles.rsvpCard} aria-label="Register or unregister">
           <p className={styles.sectionLabel}>Attend</p>
-          {rsvpError ? <p className={styles.errorText}>{rsvpError}</p> : null}
+          {registerError ? <p className={styles.errorText}>{registerError}</p> : null}
 
           {!user ? (
             <p className={styles.rsvpBody}>
               <Link href="/login" className={styles.inlineLink}>
                 Sign in
               </Link>{" "}
-              to RSVP. Published events you join appear on{" "}
+              to register. Published events you join appear on{" "}
               <Link href="/calender" className={styles.inlineLink}>
                 Your Calendar
               </Link>
@@ -233,15 +233,15 @@ export default function EventDetailClient({ eventId }) {
 
           {user && !isOrganizer && isPublished && event.user_has_rsvp ? (
             <div className={styles.rsvpActions}>
-              <p className={styles.rsvpSuccess}>You’re going.</p>
+              <p className={styles.rsvpSuccess}>You’re registered.</p>
               <div className={styles.rsvpButtonRow}>
                 <button
                   type="button"
                   className={styles.secondaryButton}
-                  disabled={rsvpBusy}
-                  onClick={handleCancelRsvp}
+                  disabled={registerBusy}
+                  onClick={handleUnregister}
                 >
-                  {rsvpBusy ? "Updating…" : "Cancel RSVP"}
+                  {registerBusy ? "Updating…" : "Unregister"}
                 </button>
                 <Link href="/calender" className={styles.secondaryLink}>
                   View on Your Calendar
@@ -258,14 +258,14 @@ export default function EventDetailClient({ eventId }) {
                 <button
                   type="button"
                   className={styles.primaryButton}
-                  disabled={rsvpBusy}
-                  onClick={handleRsvp}
+                  disabled={registerBusy}
+                  onClick={handleRegister}
                 >
-                  {rsvpBusy ? "Saving…" : "RSVP"}
+                  {registerBusy ? "Saving…" : "Register"}
                 </button>
               )}
               <p className={styles.rsvpHint}>
-                After you RSVP, this event is listed on{" "}
+                After you register, this event is listed on{" "}
                 <Link href="/calender" className={styles.inlineLink}>
                   Your Calendar
                 </Link>
@@ -275,7 +275,7 @@ export default function EventDetailClient({ eventId }) {
           ) : null}
 
           {user && !isOrganizer && !isPublished ? (
-            <p className={styles.rsvpMuted}>RSVP opens when the event is published.</p>
+            <p className={styles.rsvpMuted}>Registration opens when the event is published.</p>
           ) : null}
 
           {isPublished ? (
@@ -295,7 +295,7 @@ export default function EventDetailClient({ eventId }) {
               </button>
               <span className={styles.rsvpMutedInline}>
                 {" "}
-                (opens Google — does not require RSVP)
+                (opens Google — no registration required)
               </span>
             </p>
           ) : null}
@@ -352,7 +352,7 @@ export default function EventDetailClient({ eventId }) {
             </div>
             {"rsvp_count" in event ? (
               <div>
-                <dt className={styles.dt}>RSVPs</dt>
+                <dt className={styles.dt}>Registrations</dt>
                 <dd className={styles.dd}>{event.rsvp_count}</dd>
               </div>
             ) : null}

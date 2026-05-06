@@ -190,7 +190,7 @@ export async function fetchEvent(eventId) {
   return data;
 }
 
-export async function fetchMyRsvpEvents() {
+export async function fetchMyRegisteredEvents() {
   const access = getAccessToken();
   if (!access) {
     const err = new Error("You are not signed in.");
@@ -206,13 +206,15 @@ export async function fetchMyRsvpEvents() {
   const data = await response.json().catch(() => ({}));
   if (!response.ok) {
     throw new Error(
-      typeof data.detail === "string" ? data.detail : "Could not load your RSVPs."
+      typeof data.detail === "string"
+        ? data.detail
+        : "Could not load your registered events."
     );
   }
   return Array.isArray(data) ? data : data.results ?? [];
 }
 
-export async function createEventRsvp(eventId) {
+export async function registerForEvent(eventId) {
   const access = getAccessToken();
   if (!access) {
     const err = new Error("You are not signed in.");
@@ -230,12 +232,14 @@ export async function createEventRsvp(eventId) {
   });
   const data = await response.json().catch(() => ({}));
   if (!response.ok) {
-    throw new Error(typeof data.detail === "string" ? data.detail : "Could not RSVP.");
+    throw new Error(
+      typeof data.detail === "string" ? data.detail : "Could not complete registration."
+    );
   }
   return data;
 }
 
-export async function cancelEventRsvp(eventId) {
+export async function unregisterFromEvent(eventId) {
   const access = getAccessToken();
   if (!access) {
     const err = new Error("You are not signed in.");
@@ -255,7 +259,68 @@ export async function cancelEventRsvp(eventId) {
   const data = await response.json().catch(() => ({}));
   if (!response.ok) {
     throw new Error(
-      typeof data.detail === "string" ? data.detail : "Could not cancel RSVP."
+      typeof data.detail === "string" ? data.detail : "Could not unregister."
+    );
+  }
+}
+
+export async function fetchEventRegistrations(eventId) {
+  const access = getAccessToken();
+  if (!access) {
+    const err = new Error("You are not signed in.");
+    err.code = "NO_TOKEN";
+    throw err;
+  }
+
+  const response = await fetch(`${API_BASE_URL}/events/${eventId}/registrations/`, {
+    headers: {
+      Authorization: `Bearer ${access}`,
+    },
+  });
+  const data = await response.json().catch(() => ({}));
+  if (response.status === 404) {
+    const err = new Error(
+      typeof data.detail === "string" ? data.detail : "Event not found."
+    );
+    err.code = "NOT_FOUND";
+    throw err;
+  }
+  if (!response.ok) {
+    throw new Error(
+      typeof data.detail === "string"
+        ? data.detail
+        : "Could not load registrations for this event."
+    );
+  }
+  return Array.isArray(data) ? data : data.results ?? [];
+}
+
+export async function cancelRegistrationForUser(eventId, userId) {
+  const access = getAccessToken();
+  if (!access) {
+    const err = new Error("You are not signed in.");
+    err.code = "NO_TOKEN";
+    throw err;
+  }
+
+  const response = await fetch(
+    `${API_BASE_URL}/events/${eventId}/registrations/${userId}/`,
+    {
+      method: "DELETE",
+      headers: {
+        Authorization: `Bearer ${access}`,
+      },
+    }
+  );
+
+  if (response.status === 204) return;
+
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    throw new Error(
+      typeof data.detail === "string"
+        ? data.detail
+        : "Could not cancel this registration."
     );
   }
 }

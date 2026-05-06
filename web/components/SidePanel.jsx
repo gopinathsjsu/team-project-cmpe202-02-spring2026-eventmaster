@@ -10,7 +10,6 @@ const MAIN_NAV = [
   { label: "Create an Event", href: "/create-event", organizerOnly: true },
   { label: "Your Events", href: "/your-events", organizerOnly: false },
   { label: "Your Calendar", href: "/calender", organizerOnly: false },
-  { label: "RSVP Tracking", href: "/rsvp-tracking", organizerOnly: true },
   { label: "Manage Attendees", href: "/manage-attendees", organizerOnly: true },
   { label: "Notifications", href: null, organizerOnly: false },
 ];

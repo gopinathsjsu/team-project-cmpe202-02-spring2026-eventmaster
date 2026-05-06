@@ -26,7 +26,7 @@ class SeedUserSpec:
 
 
 class Command(BaseCommand):
-    help = "Create/update local development seed data (users, categories, events, rsvps)."
+    help = "Create/update local development seed data (users, categories, events, registrations)."
 
     def add_arguments(self, parser):
         parser.add_argument(
@@ -42,7 +42,7 @@ class Command(BaseCommand):
         users = self._seed_users(password=password)
         categories = self._seed_categories()
         events = self._seed_events(users=users, categories=categories)
-        self._seed_rsvps(users=users, events=events)
+        self._seed_event_registrations(users=users, events=events)
 
         self.stdout.write(self.style.SUCCESS("Seed data ensured."))
 
@@ -250,7 +250,7 @@ class Command(BaseCommand):
 
         return out
 
-    def _seed_rsvps(self, *, users: dict[str, User], events: dict[str, Event]) -> None:
+    def _seed_event_registrations(self, *, users: dict[str, User], events: dict[str, Event]) -> None:
         attendee_users = [users["user1"], users["user2"]]
         target_events = [events["react-night"], events["lofi-online"], events["tacos-hybrid"]]
 
