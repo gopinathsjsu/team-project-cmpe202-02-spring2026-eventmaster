@@ -52,7 +52,8 @@
   background: rgba(17, 19, 28, 0.35);
   display: grid;
   place-items: center;
-  z-index: 60;
+  /* Leaflet panes use z-index up to ~700; stay above map tiles on event cards */
+  z-index: 5000;
   padding: 1rem;
 }
 
