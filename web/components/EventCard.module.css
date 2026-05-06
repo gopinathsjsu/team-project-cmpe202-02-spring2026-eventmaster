@@ -7,12 +7,29 @@
 }
 
 .banner {
+  position: relative;
   height: 10rem;
   padding: 0.9rem;
   background: linear-gradient(135deg, #b491ff, #b9a4f3);
+  overflow: hidden;
+}
+
+.bannerWithMap {
+  background: #e6e6ee;
+}
+
+.bannerMap {
+  position: absolute;
+  inset: 0;
+}
+
+.bannerMap :global(div) {
+  border-radius: 0;
 }
 
 .dateBox {
+  position: relative;
+  z-index: 1;
   width: 2.4rem;
   border-radius: 0.45rem;
   background: rgba(89, 57, 140, 0.24);

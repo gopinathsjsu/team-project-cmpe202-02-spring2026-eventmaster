@@ -1,4 +1,9 @@
+"use client";
+
+import dynamic from "next/dynamic";
 import styles from "./EventCard.module.css";
+
+const EventMap = dynamic(() => import("../app/event/EventMap.jsx"), { ssr: false });
 
 const STATUS_STYLES = {
   draft: styles.statusDraft,
@@ -71,10 +76,26 @@ export default function EventCard({ event }) {
   const category = categoryLabel(event);
   const capacityText =
     event.capacity == null ? "No capacity limit" : `Max ${event.capacity} attendees`;
+  const latitude = event.latitude == null ? null : Number(event.latitude);
+  const longitude = event.longitude == null ? null : Number(event.longitude);
+  const hasMap =
+    (event.venue_type === "in_person" || event.venue_type === "hybrid") &&
+    Number.isFinite(latitude) &&
+    Number.isFinite(longitude);
 
   return (
     <article className={styles.card}>
-      <div className={styles.banner}>
+      <div className={`${styles.banner} ${hasMap ? styles.bannerWithMap : ""}`}>
+        {hasMap ? (
+          <div className={styles.bannerMap}>
+            <EventMap
+              latitude={latitude}
+              longitude={longitude}
+              locationLabel={event.location?.trim() ? event.location.trim() : null}
+              height={160}
+            />
+          </div>
+        ) : null}
         <div className={styles.dateBox}>
           <span className={styles.dateMonth}>{month}</span>
           <span className={styles.dateDay}>{day}</span>

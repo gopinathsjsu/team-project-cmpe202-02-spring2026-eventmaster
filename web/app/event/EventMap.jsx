@@ -3,7 +3,7 @@
 import { useEffect, useRef } from "react";
 import L from "leaflet";
 
-export default function EventMap({ latitude, longitude, locationLabel }) {
+export default function EventMap({ latitude, longitude, locationLabel, height = 260 }) {
   const containerRef = useRef(null);
   const mapRef = useRef(null);
 
@@ -54,7 +54,7 @@ export default function EventMap({ latitude, longitude, locationLabel }) {
   return (
     <div
       ref={containerRef}
-      style={{ width: "100%", height: 260, borderRadius: "0.75rem" }}
+      style={{ width: "100%", height, borderRadius: "0.75rem" }}
     />
   );
 }
