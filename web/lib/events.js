@@ -168,12 +168,16 @@ export async function fetchCategories() {
   return Array.isArray(data) ? data : data.results ?? [];
 }
 
-export async function fetchEvent(eventId) {
+export async function fetchEvent(eventId, options = {}) {
   const access = getAccessToken();
   const headers = {};
   if (access) headers.Authorization = `Bearer ${access}`;
 
-  const response = await fetch(`${API_BASE_URL}/events/${eventId}/`, { headers });
+  const response = await fetch(`${API_BASE_URL}/events/${eventId}/`, {
+    headers,
+    signal: options.signal,
+    cache: "no-store",
+  });
   const data = await response.json().catch(() => ({}));
   if (response.status === 404) {
     const err = new Error(

@@ -37,5 +37,5 @@ export default async function EventDetailPage({ searchParams }) {
   const eventId =
     raw === undefined || raw === "" ? null : Array.isArray(raw) ? raw[0] : raw;
 
-  return <EventDetailClient eventId={eventId} />;
+  return <EventDetailClient key={`event-${eventId ?? "none"}`} eventId={eventId} />;
 }
