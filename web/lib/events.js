@@ -45,6 +45,33 @@ export function parseValidationErrors(data) {
   return { fieldErrors, general };
 }
 
+export async function fetchAdminAllEvents() {
+  const access = getAccessToken();
+  if (!access) {
+    const err = new Error("You are not signed in.");
+    err.code = "NO_TOKEN";
+    throw err;
+  }
+
+  const response = await fetch(`${API_BASE_URL}/events/admin/all/`, {
+    headers: {
+      Authorization: `Bearer ${access}`,
+    },
+  });
+  const data = await response.json().catch(() => ({}));
+  if (response.status === 403) {
+    const err = new Error("Administrator access required.");
+    err.code = "FORBIDDEN";
+    throw err;
+  }
+  if (!response.ok) {
+    const msg =
+      typeof data.detail === "string" ? data.detail : "Could not load events.";
+    throw new Error(msg);
+  }
+  return Array.isArray(data) ? data : data.results ?? [];
+}
+
 export async function fetchAdminPendingEvents() {
   const access = getAccessToken();
   if (!access) {

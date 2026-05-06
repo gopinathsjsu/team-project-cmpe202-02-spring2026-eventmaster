@@ -15,7 +15,8 @@ const MAIN_NAV = [
 ];
 
 const SECONDARY_NAV = [
-  { label: "Administration", href: "/administration/approvals", adminOnly: true },
+  { label: "Pending Approvals", href: "/administration/approvals", adminOnly: true },
+  { label: "Manage Events", href: "/administration/manage-events", adminOnly: true },
 ];
 
 function canSeeOrganizerNav(role) {

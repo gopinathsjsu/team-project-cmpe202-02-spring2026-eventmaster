@@ -150,7 +150,6 @@ class CategoryListView(generics.ListAPIView):
 
 
 class AdminPendingEventListView(generics.ListAPIView):
-    """Events awaiting moderator approval (admin app role or Django superuser)."""
 
     serializer_class = EventReadSerializer
     permission_classes = [permissions.IsAuthenticated, IsRoleAdmin]
@@ -160,6 +159,19 @@ class AdminPendingEventListView(generics.ListAPIView):
             Event.objects.filter(status=Event.Status.PENDING_APPROVAL)
             .select_related("category", "organizer")
             .order_by("created_at")
+        )
+
+
+class AdminAllEventListView(generics.ListAPIView):
+
+    serializer_class = EventReadSerializer
+    permission_classes = [permissions.IsAuthenticated, IsRoleAdmin]
+
+    def get_queryset(self):
+        return (
+            Event.objects.exclude(status=Event.Status.DRAFT)
+            .select_related("category", "organizer")
+            .order_by("-starts_at")
         )
 
 

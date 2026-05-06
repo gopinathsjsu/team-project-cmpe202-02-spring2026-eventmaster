@@ -7,9 +7,9 @@ import SidePanel from "../../../components/SidePanel";
 import RequireAuth from "../../components/RequireAuth";
 import RequireAdmin from "../../components/RequireAdmin";
 import {
-  approveEvent,
-  fetchAdminPendingEvents,
-  rejectEvent,
+  deleteEvent,
+  fetchAdminAllEvents,
+  updateEvent,
 } from "../../../lib/events";
 import styles from "./page.module.css";
 
@@ -30,56 +30,87 @@ function formatWhen(startsAt, endsAt) {
     : datePart;
 }
 
-export default function AdministrationApprovalsPage() {
+function statusClass(status) {
+  switch (status) {
+    case "draft":
+      return styles.statusDraft;
+    case "pending_approval":
+      return styles.statusPending;
+    case "published":
+      return styles.statusPublished;
+    case "cancelled":
+      return styles.statusCancelled;
+    default:
+      return "";
+  }
+}
+
+function statusLabel(status) {
+  if (status === "pending_approval") return "Pending approval";
+  return status ? String(status).replace(/_/g, " ") : "—";
+}
+
+export default function ManageEventsPage() {
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [toast, setToast] = useState("");
   const [busyId, setBusyId] = useState(null);
 
-  const loadPending = useCallback(async () => {
+  const loadEvents = useCallback(async () => {
     setLoading(true);
     setError("");
     try {
-      const list = await fetchAdminPendingEvents();
+      const list = await fetchAdminAllEvents();
       setEvents(Array.isArray(list) ? list : []);
     } catch (e) {
       setEvents([]);
-      setError(e.message || "Could not load pending events.");
+      setError(e.message || "Could not load events.");
     } finally {
       setLoading(false);
     }
   }, []);
 
   useEffect(() => {
-    loadPending();
-  }, [loadPending]);
+    loadEvents();
+  }, [loadEvents]);
 
-  async function handleApprove(id) {
+  async function handleMoveToPending(id) {
     setBusyId(id);
     setToast("");
     setError("");
     try {
-      await approveEvent(id);
-      setToast("Event approved and published.");
-      await loadPending();
+      await updateEvent(id, { status: "pending_approval" });
+      setToast("Event moved to pending approval.");
+      await loadEvents();
     } catch (e) {
-      setError(e.message || "Approve failed.");
+      const msg =
+        e.body && typeof e.body.detail === "string"
+          ? e.body.detail
+          : e.message || "Could not update event.";
+      setError(msg);
     } finally {
       setBusyId(null);
     }
   }
 
-  async function handleReject(id) {
+  async function handleDelete(id, title) {
+    const ok =
+      typeof window !== "undefined" &&
+      window.confirm(
+        `Delete “${title}”? This cannot be undone and removes all registrations.`
+      );
+    if (!ok) return;
+
     setBusyId(id);
     setToast("");
     setError("");
     try {
-      await rejectEvent(id);
-      setToast("Event returned to draft for the organizer.");
-      await loadPending();
+      await deleteEvent(id);
+      setToast("Event deleted.");
+      await loadEvents();
     } catch (e) {
-      setError(e.message || "Reject failed.");
+      setError(e.message || "Delete failed.");
     } finally {
       setBusyId(null);
     }
@@ -95,10 +126,11 @@ export default function AdministrationApprovalsPage() {
             <SearchBar />
 
             <header className={styles.header}>
-              <h1 className={styles.title}>Pending approvals</h1>
+              <h1 className={styles.title}>Manage events</h1>
               <p className={styles.subtitle}>
-                Review events submitted for moderation. Approving publishes them; rejecting sends them
-                back to draft so the organizer can revise.
+                Events from every organizer except drafts (organizers keep those private until they
+                submit). You can remove an event or send it back to the pending-approval queue for
+                review.
               </p>
             </header>
 
@@ -113,10 +145,10 @@ export default function AdministrationApprovalsPage() {
               </p>
             )}
 
-            {loading && <p className={styles.loading}>Loading pending events…</p>}
+            {loading && <p className={styles.loading}>Loading events…</p>}
 
             {!loading && !error && events.length === 0 && (
-              <div className={styles.empty}>No events are waiting for approval.</div>
+              <div className={styles.empty}>No events in the system.</div>
             )}
 
             {!loading && events.length > 0 && (
@@ -133,6 +165,13 @@ export default function AdministrationApprovalsPage() {
                             : ""}
                           {event.category?.name ? ` · ${event.category.name}` : ""}
                         </p>
+                        <div className={styles.statusRow}>
+                          <span
+                            className={`${styles.statusPill} ${statusClass(event.status)}`}
+                          >
+                            {statusLabel(event.status)}
+                          </span>
+                        </div>
                         <p className={styles.meta}>{formatWhen(event.starts_at, event.ends_at)}</p>
                         <p className={styles.meta}>
                           {event.location?.trim()
@@ -141,9 +180,6 @@ export default function AdministrationApprovalsPage() {
                               ? "Online event"
                               : "—"}
                         </p>
-                        {event.description?.trim() ? (
-                          <p className={styles.meta}>{event.description.trim().slice(0, 280)}</p>
-                        ) : null}
                       </div>
                       <Link href={`/event?id=${event.id}`} className={styles.link}>
                         Open detail
@@ -153,19 +189,23 @@ export default function AdministrationApprovalsPage() {
                     <div className={styles.actions}>
                       <button
                         type="button"
-                        className={styles.btnApprove}
-                        disabled={busyId !== null}
-                        onClick={() => handleApprove(event.id)}
+                        className={styles.btnPending}
+                        disabled={busyId !== null || event.status === "pending_approval"}
+                        onClick={() => handleMoveToPending(event.id)}
                       >
-                        {busyId === event.id ? "Working…" : "Approve & publish"}
+                        {busyId === event.id
+                          ? "Working…"
+                          : event.status === "pending_approval"
+                            ? "Already pending"
+                            : "Move to pending approval"}
                       </button>
                       <button
                         type="button"
-                        className={styles.btnReject}
+                        className={styles.btnDelete}
                         disabled={busyId !== null}
-                        onClick={() => handleReject(event.id)}
+                        onClick={() => handleDelete(event.id, event.title)}
                       >
-                        {busyId === event.id ? "Working…" : "Reject (send to draft)"}
+                        {busyId === event.id ? "Working…" : "Delete event"}
                       </button>
                     </div>
                   </article>

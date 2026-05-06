@@ -1,6 +1,7 @@
 from django.urls import path
 
 from events.views import (
+    AdminAllEventListView,
     AdminPendingEventListView,
     CategoryListView,
     EventApproveView,
@@ -23,6 +24,11 @@ urlpatterns = [
         "admin/pending/",
         AdminPendingEventListView.as_view(),
         name="admin-events-pending",
+    ),
+    path(
+        "admin/all/",
+        AdminAllEventListView.as_view(),
+        name="admin-events-all",
     ),
     path("<int:pk>/registrations/", EventRegistrationListView.as_view(), name="event-registrations"),
     path(
