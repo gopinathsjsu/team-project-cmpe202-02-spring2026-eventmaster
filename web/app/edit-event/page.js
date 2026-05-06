@@ -19,6 +19,7 @@ import {
   geocodeAddress,
   searchAddressSuggestions,
 } from "../../lib/geocoding";
+import DatetimeLocalInput from "../../components/DatetimeLocalInput";
 import styles from "../create-event/page.module.css";
 
 function newScheduleRow(seed) {
@@ -541,8 +542,7 @@ export default function EditEventPage() {
                   <div className={styles.gridTwo}>
                     <label className={styles.field}>
                       <span>Start</span>
-                      <input
-                        type="datetime-local"
+                      <DatetimeLocalInput
                         value={form.startsAt}
                         onChange={(e) => updateField("startsAt", e.target.value)}
                         required
@@ -554,8 +554,7 @@ export default function EditEventPage() {
                     </label>
                     <label className={styles.field}>
                       <span>End</span>
-                      <input
-                        type="datetime-local"
+                      <DatetimeLocalInput
                         value={form.endsAt}
                         onChange={(e) => updateField("endsAt", e.target.value)}
                         required
@@ -601,8 +600,7 @@ export default function EditEventPage() {
                         </label>
                         <label className={styles.field}>
                           <span>Starts</span>
-                          <input
-                            type="datetime-local"
+                          <DatetimeLocalInput
                             value={row.startsAt}
                             onChange={(e) =>
                               updateScheduleRow(index, "startsAt", e.target.value)
@@ -611,8 +609,7 @@ export default function EditEventPage() {
                         </label>
                         <label className={styles.field}>
                           <span>Ends</span>
-                          <input
-                            type="datetime-local"
+                          <DatetimeLocalInput
                             value={row.endsAt}
                             onChange={(e) =>
                               updateScheduleRow(index, "endsAt", e.target.value)
