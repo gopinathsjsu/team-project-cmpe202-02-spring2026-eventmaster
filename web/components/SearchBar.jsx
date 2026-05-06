@@ -8,6 +8,10 @@ import styles from "./SearchBar.module.css";
 export default function SearchBar({
   eventPlaceholder = "Search an event...",
   locationPlaceholder = "Search a location...",
+  eventValue,
+  onEventChange,
+  locationValue,
+  onLocationChange,
   profileLabel = "johnnyapples@gmail.com",
   onSignOut,
   eventSearchValue = "",
@@ -83,11 +87,21 @@ export default function SearchBar({
   }
 
   function handleEventInputChange(event) {
-    onEventSearchChange?.(event.target.value);
+    const value = event.target.value;
+    if (typeof onEventSearchChange === "function") {
+      onEventSearchChange(value);
+      return;
+    }
+    onEventChange?.(value);
   }
 
   function handleLocationInputChange(event) {
-    onLocationSearchChange?.(event.target.value);
+    const value = event.target.value;
+    if (typeof onLocationSearchChange === "function") {
+      onLocationSearchChange(value);
+      return;
+    }
+    onLocationChange?.(value);
   }
 
   function handleDateStartChange(event) {
@@ -136,19 +150,24 @@ export default function SearchBar({
     });
   }, [categoryFilters]);
 
+  const resolvedEventValue =
+    typeof onEventSearchChange === "function" ? eventSearchValue : (eventValue ?? "");
+  const resolvedLocationValue =
+    typeof onLocationSearchChange === "function" ? locationSearchValue : (locationValue ?? "");
+
   return (
     <div className={styles.searchBarBlock}>
       <header className={styles.topBar}>
         <input
           className={styles.searchInput}
           placeholder={eventPlaceholder}
-          value={eventSearchValue}
+          value={resolvedEventValue}
           onChange={handleEventInputChange}
         />
         <input
           className={styles.searchInput}
           placeholder={locationPlaceholder}
-          value={locationSearchValue}
+          value={resolvedLocationValue}
           onChange={handleLocationInputChange}
         />
         <div className={styles.profileDropdown} ref={dropdownRef}>

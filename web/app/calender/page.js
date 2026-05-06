@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import SearchBar from "../../components/SearchBar";
 import SidePanel from "../../components/SidePanel";
-import { fetchMyRsvpEvents } from "../../lib/events";
+import { fetchMyRegisteredEvents } from "../../lib/events";
 import { buildGoogleCalendarUrl } from "../../lib/googleCalendar";
 import RequireAuth from "../components/RequireAuth";
 import styles from "./page.module.css";
@@ -113,11 +113,11 @@ export default function CalendarPage() {
   useEffect(() => {
     let cancelled = false;
 
-    async function loadRsvps() {
+    async function loadRegisteredEvents() {
       setEventsLoading(true);
       setEventsError("");
       try {
-        const list = await fetchMyRsvpEvents();
+        const list = await fetchMyRegisteredEvents();
         if (cancelled) return;
         const sorted = [...list].sort(
           (a, b) => new Date(a.starts_at).getTime() - new Date(b.starts_at).getTime()
@@ -125,7 +125,7 @@ export default function CalendarPage() {
         setSavedEvents(sorted);
       } catch (error) {
         if (!cancelled) {
-          setEventsError(error.message || "Could not load your RSVPs.");
+          setEventsError(error.message || "Could not load your registered events.");
           setSavedEvents([]);
         }
       } finally {
@@ -133,7 +133,7 @@ export default function CalendarPage() {
       }
     }
 
-    loadRsvps();
+    loadRegisteredEvents();
     return () => {
       cancelled = true;
     };
@@ -328,20 +328,20 @@ export default function CalendarPage() {
 
         <main className={styles.content}>
           <SearchBar
-            eventPlaceholder="Search RSVP'd events..."
+            eventPlaceholder="Search registered events..."
             locationPlaceholder="Search event locations..."
           />
 
           <section className={styles.headerSection}>
             <h1 className={styles.title}>Your Calendar</h1>
             <p className={styles.subtitle}>
-              Events you&apos;ve RSVPed to on Eventmaster — sync them to Google Calendar if you like.
+              Events you&apos;ve registered for on Eventmaster — sync them to Google Calendar if you like.
             </p>
           </section>
 
           <section className={styles.statGrid}>
             <article className={styles.statCard}>
-              <p className={styles.statLabel}>RSVP&apos;d events</p>
+              <p className={styles.statLabel}>Registered events</p>
               <p className={styles.statValue}>
                 {eventsLoading ? "…" : savedEvents.length}
               </p>
@@ -360,7 +360,7 @@ export default function CalendarPage() {
             <div>
               <h2 className={styles.sectionTitle}>Google Calendar Integration</h2>
               <p className={styles.sectionText}>
-                Connect your Google account and push RSVP&apos;d events into Google Calendar with one click.
+                Connect your Google account and push registered events into Google Calendar with one click.
               </p>
             </div>
 
@@ -410,7 +410,7 @@ export default function CalendarPage() {
                   </button>
                   <p className={styles.legend}>
                     <span className={styles.legendDot} />
-                    Days with RSVP&apos;d events
+                    Days with registered events
                   </p>
                 </div>
               </div>
@@ -440,7 +440,7 @@ export default function CalendarPage() {
             </article>
 
             <article className={styles.savedEventsCard}>
-              <h3 className={styles.sectionTitle}>Your RSVP&apos;d events</h3>
+              <h3 className={styles.sectionTitle}>Your registered events</h3>
 
               {eventsError ? (
                 <p className={styles.errorText}>{eventsError}</p>
@@ -450,8 +450,8 @@ export default function CalendarPage() {
                 <p className={styles.emptyState}>Loading your events…</p>
               ) : savedEvents.length === 0 ? (
                 <p className={styles.emptyState}>
-                  You haven&apos;t RSVPed to any events yet. Open an event from the dashboard and tap RSVP —
-                  it will show up here.
+                  You haven&apos;t registered for any events yet. Open an event from the dashboard and tap
+                  Register — it will show up here.
                 </p>
               ) : (
                 <div className={styles.eventList}>

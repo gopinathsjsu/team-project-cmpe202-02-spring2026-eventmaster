@@ -38,6 +38,7 @@ export default function DashboardPage() {
   const [upcomingEvents, setUpcomingEvents] = useState([]);
   const [upcomingLoading, setUpcomingLoading] = useState(true);
   const [upcomingError, setUpcomingError] = useState("");
+  const [showAllUpcoming, setShowAllUpcoming] = useState(false);
   const [eventQuery, setEventQuery] = useState("");
   const [locationQuery, setLocationQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
@@ -53,7 +54,7 @@ export default function DashboardPage() {
       .then((list) => {
         if (cancelled) return;
         const arr = Array.isArray(list) ? list : [];
-        setUpcomingEvents(arr.slice(0, UPCOMING_DISPLAY_LIMIT));
+        setUpcomingEvents(arr);
       })
       .catch(() => {
         if (!cancelled) {
@@ -132,6 +133,11 @@ export default function DashboardPage() {
     ];
   }, [allCategories]);
 
+  const visibleUpcomingEvents = useMemo(() => {
+    if (showAllUpcoming) return filteredUpcomingEvents;
+    return filteredUpcomingEvents.slice(0, UPCOMING_DISPLAY_LIMIT);
+  }, [filteredUpcomingEvents, showAllUpcoming]);
+
   function handleDateRangeChange(start, end) {
     setDateRangeStart(start);
     setDateRangeEnd(end);
@@ -190,9 +196,15 @@ export default function DashboardPage() {
           <section className={styles.upcomingSection}>
             <div className={styles.upcomingHeader}>
               <h2 className={styles.sectionTitle}>Upcoming Events</h2>
-              <button type="button" className={styles.viewAllButton}>
-                View All
-              </button>
+              {filteredUpcomingEvents.length > UPCOMING_DISPLAY_LIMIT ? (
+                <button
+                  type="button"
+                  className={styles.viewAllButton}
+                  onClick={() => setShowAllUpcoming((current) => !current)}
+                >
+                  {showAllUpcoming ? "View Less" : "View All"}
+                </button>
+              ) : null}
             </div>
 
             {upcomingError && (
@@ -216,7 +228,7 @@ export default function DashboardPage() {
                 )}
 
               {!upcomingLoading &&
-                filteredUpcomingEvents.map((event) => (
+                visibleUpcomingEvents.map((event) => (
                   <Link
                     key={event.id}
                     href={`/event?id=${event.id}`}
