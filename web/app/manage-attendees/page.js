@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
+import { useEffect, useMemo, useRef, useState } from "react";
 import SearchBar from "../../components/SearchBar";
 import SidePanel from "../../components/SidePanel";
 import {
@@ -37,6 +38,14 @@ function eventLocationLine(event) {
 }
 
 export default function ManageAttendeesPage() {
+  const searchParams = useSearchParams();
+  const eventParam = searchParams.get("event");
+  const preferredEventId = useMemo(() => {
+    if (eventParam == null || eventParam === "") return null;
+    const n = Number(eventParam);
+    return Number.isFinite(n) && n > 0 ? n : null;
+  }, [eventParam]);
+
   const [events, setEvents] = useState([]);
   const [eventsLoading, setEventsLoading] = useState(true);
   const [eventsError, setEventsError] = useState("");
@@ -47,6 +56,7 @@ export default function ManageAttendeesPage() {
   const [regLoading, setRegLoading] = useState(false);
   const [regError, setRegError] = useState("");
   const [cancellingUserId, setCancellingUserId] = useState(null);
+  const lastAppliedEventParamRef = useRef(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -82,14 +92,47 @@ export default function ManageAttendeesPage() {
     });
   }, [events, eventSearch, locationSearch]);
 
+  const eventsForSelect = useMemo(() => {
+    if (selectedEventId == null) return filteredEvents;
+    const inFiltered = filteredEvents.some(
+      (e) => Number(e.id) === Number(selectedEventId)
+    );
+    if (inFiltered) return filteredEvents;
+    const extra = events.find((e) => Number(e.id) === Number(selectedEventId));
+    return extra ? [extra, ...filteredEvents] : filteredEvents;
+  }, [filteredEvents, events, selectedEventId]);
+
   useEffect(() => {
-    if (filteredEvents.length === 0) {
+    if (eventsLoading || events.length === 0) return;
+
+    const eventInList = (id) => events.some((e) => Number(e.id) === Number(id));
+
+    if (
+      preferredEventId != null &&
+      eventInList(preferredEventId) &&
+      lastAppliedEventParamRef.current !== eventParam
+    ) {
+      lastAppliedEventParamRef.current = eventParam;
+      setSelectedEventId(preferredEventId);
+      return;
+    }
+
+    if (eventsForSelect.length === 0) {
       setSelectedEventId(null);
       return;
     }
-    const stillThere = filteredEvents.some((e) => e.id === selectedEventId);
-    if (!stillThere) setSelectedEventId(filteredEvents[0].id);
-  }, [filteredEvents, selectedEventId]);
+    const stillThere = eventsForSelect.some(
+      (e) => Number(e.id) === Number(selectedEventId)
+    );
+    if (!stillThere) setSelectedEventId(eventsForSelect[0].id);
+  }, [
+    events,
+    eventsLoading,
+    preferredEventId,
+    eventParam,
+    eventsForSelect,
+    selectedEventId,
+  ]);
 
   useEffect(() => {
     if (!selectedEventId) {
@@ -118,7 +161,8 @@ export default function ManageAttendeesPage() {
     };
   }, [selectedEventId]);
 
-  const selectedEvent = filteredEvents.find((e) => e.id === selectedEventId) ?? null;
+  const selectedEvent =
+    events.find((e) => Number(e.id) === Number(selectedEventId)) ?? null;
 
   async function handleCancelRegistration(row) {
     if (!selectedEventId || cancellingUserId != null) return;
@@ -168,7 +212,7 @@ export default function ManageAttendeesPage() {
 
             {eventsLoading ? (
               <p className={styles.muted}>Loading your events…</p>
-            ) : filteredEvents.length === 0 ? (
+            ) : eventsForSelect.length === 0 ? (
               <div className={styles.card}>
                 <p className={styles.muted}>
                   {events.length === 0
@@ -188,7 +232,7 @@ export default function ManageAttendeesPage() {
                     value={selectedEventId ?? ""}
                     onChange={(e) => setSelectedEventId(Number(e.target.value))}
                   >
-                    {filteredEvents.map((e) => (
+                    {eventsForSelect.map((e) => (
                       <option key={e.id} value={e.id}>
                         {e.title}
                         {e.status && e.status !== "published" ? ` (${e.status})` : ""}
