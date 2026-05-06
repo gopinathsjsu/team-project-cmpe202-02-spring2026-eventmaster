@@ -1,3 +1,7 @@
+import logging
+
+from django.conf import settings
+from django.core.mail import send_mail
 from django.db import IntegrityError
 from django.http import Http404
 from django.shortcuts import get_object_or_404
@@ -18,6 +22,42 @@ from events.serializers import (
     EventRegistrationSerializer,
     EventUpdateSerializer,
 )
+
+logger = logging.getLogger(__name__)
+
+
+def _send_rsvp_confirmation_email(*, user, event):
+    """Best-effort confirmation email sent after a successful RSVP."""
+    recipient = (user.email or "").strip()
+    if not recipient:
+        return
+
+    subject = f"RSVP confirmed: {event.title}"
+    starts_at = timezone.localtime(event.starts_at).strftime("%A, %B %d at %I:%M %p %Z")
+    location = event.location.strip() if event.location else "Online / TBD"
+    body = (
+        f"Hi {user.username},\n\n"
+        f"Your RSVP is confirmed for:\n"
+        f"- Event: {event.title}\n"
+        f"- Starts: {starts_at}\n"
+        f"- Location: {location}\n\n"
+        "Thanks for using Eventmaster!"
+    )
+
+    try:
+        send_mail(
+            subject=subject,
+            message=body,
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            recipient_list=[recipient],
+            fail_silently=False,
+        )
+    except Exception:
+        # RSVP should still succeed even if email delivery fails.
+        logger.exception(
+            "RSVP confirmation email failed",
+            extra={"user_id": user.id, "event_id": event.id},
+        )
 
 
 class EventRetrieveView(generics.RetrieveAPIView):
@@ -74,6 +114,7 @@ class EventRsvpView(APIView):
                 {"detail": "You are already registered for this event."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
+        _send_rsvp_confirmation_email(user=request.user, event=event)
         event.refresh_from_db()
         data = EventDetailSerializer(event, context={"request": request}).data
         return Response(data, status=status.HTTP_201_CREATED)
