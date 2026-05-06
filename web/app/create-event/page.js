@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import SearchBar from "../../components/SearchBar";
 import SidePanel from "../../components/SidePanel";
@@ -76,6 +76,16 @@ export default function CreateEventPage() {
       cancelled = true;
     };
   }, []);
+
+  const uniqueCategories = useMemo(() => {
+    const seen = new Set();
+    return categories.filter((category) => {
+      const nameKey = (category?.name || "").trim().toLowerCase();
+      if (!nameKey || seen.has(nameKey)) return false;
+      seen.add(nameKey);
+      return true;
+    });
+  }, [categories]);
 
   function updateField(field, value) {
     setFieldErrors((prev) => {
@@ -262,11 +272,11 @@ export default function CreateEventPage() {
                       value={form.categoryId}
                       onChange={(e) => updateField("categoryId", e.target.value)}
                       required
-                      disabled={categories.length === 0}
+                      disabled={uniqueCategories.length === 0}
                       aria-invalid={Boolean(fieldErrors.categoryId)}
                     >
                       <option value="">Select a category</option>
-                      {categories.map((c) => (
+                      {uniqueCategories.map((c) => (
                         <option key={c.id} value={c.id}>
                           {c.name}
                         </option>

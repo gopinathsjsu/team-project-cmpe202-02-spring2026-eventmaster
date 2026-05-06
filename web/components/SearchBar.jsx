@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { clearAuthTokens, getStoredUser } from "../lib/auth";
 import styles from "./SearchBar.module.css";
@@ -10,8 +10,21 @@ export default function SearchBar({
   locationPlaceholder = "Search a location...",
   profileLabel = "johnnyapples@gmail.com",
   onSignOut,
+  eventSearchValue = "",
+  locationSearchValue = "",
+  onEventSearchChange,
+  onLocationSearchChange,
+  categoryFilters = [],
+  selectedCategory = "all",
+  onCategoryChange,
+  dateRangeStart = "",
+  dateRangeEnd = "",
+  onDateRangeChange,
 }) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isDateModalOpen, setIsDateModalOpen] = useState(false);
+  const [draftDateStart, setDraftDateStart] = useState(dateRangeStart);
+  const [draftDateEnd, setDraftDateEnd] = useState(dateRangeEnd);
   const [currentProfileLabel, setCurrentProfileLabel] = useState(profileLabel);
   const dropdownRef = useRef(null);
   const router = useRouter();
@@ -39,6 +52,11 @@ export default function SearchBar({
   }, []);
 
   useEffect(() => {
+    setDraftDateStart(dateRangeStart);
+    setDraftDateEnd(dateRangeEnd);
+  }, [dateRangeStart, dateRangeEnd]);
+
+  useEffect(() => {
     const user = getStoredUser();
     if (!user) return;
     setCurrentProfileLabel(user.email || user.username || profileLabel);
@@ -64,40 +82,172 @@ export default function SearchBar({
     router.push("/settings");
   }
 
-  return (
-    <header className={styles.topBar}>
-      <input className={styles.searchInput} placeholder={eventPlaceholder} />
-      <input className={styles.searchInput} placeholder={locationPlaceholder} />
-      <div className={styles.profileDropdown} ref={dropdownRef}>
-        <button
-          type="button"
-          className={styles.profileButton}
-          onClick={() => setIsMenuOpen((current) => !current)}
-          aria-haspopup="menu"
-          aria-expanded={isMenuOpen}
-        >
-          <span className={styles.chevron}></span>
-          {currentProfileLabel}
-        </button>
+  function handleEventInputChange(event) {
+    onEventSearchChange?.(event.target.value);
+  }
 
-        {isMenuOpen && (
-          <div className={styles.dropdownMenu} role="menu" aria-label="Profile menu">
+  function handleLocationInputChange(event) {
+    onLocationSearchChange?.(event.target.value);
+  }
+
+  function handleDateStartChange(event) {
+    setDraftDateStart(event.target.value);
+  }
+
+  function handleDateEndChange(event) {
+    setDraftDateEnd(event.target.value);
+  }
+
+  function clearDateRange() {
+    onDateRangeChange?.("", "");
+  }
+
+  function applyDateRange() {
+    onDateRangeChange?.(draftDateStart, draftDateEnd);
+    setIsDateModalOpen(false);
+  }
+
+  function closeDateModal() {
+    setDraftDateStart(dateRangeStart);
+    setDraftDateEnd(dateRangeEnd);
+    setIsDateModalOpen(false);
+  }
+
+  function formatShortDate(value) {
+    if (!value) return "";
+    const date = new Date(`${value}T00:00:00`);
+    if (Number.isNaN(date.getTime())) return "";
+    return `${date.getMonth() + 1}/${date.getDate()}/${String(date.getFullYear()).slice(-2)}`;
+  }
+
+  const dateRangeLabel =
+    dateRangeStart && dateRangeEnd
+      ? `${formatShortDate(dateRangeStart)} - ${formatShortDate(dateRangeEnd)}`
+      : "Date range";
+
+  const uniqueCategoryFilters = useMemo(() => {
+    const seenLabels = new Set();
+    return categoryFilters.filter((category) => {
+      if (!category || typeof category.label !== "string") return false;
+      const key = category.label.trim().toLowerCase();
+      if (!key || seenLabels.has(key)) return false;
+      seenLabels.add(key);
+      return true;
+    });
+  }, [categoryFilters]);
+
+  return (
+    <div className={styles.searchBarBlock}>
+      <header className={styles.topBar}>
+        <input
+          className={styles.searchInput}
+          placeholder={eventPlaceholder}
+          value={eventSearchValue}
+          onChange={handleEventInputChange}
+        />
+        <input
+          className={styles.searchInput}
+          placeholder={locationPlaceholder}
+          value={locationSearchValue}
+          onChange={handleLocationInputChange}
+        />
+        <div className={styles.profileDropdown} ref={dropdownRef}>
+          <button
+            type="button"
+            className={styles.profileButton}
+            onClick={() => setIsMenuOpen((current) => !current)}
+            aria-haspopup="menu"
+            aria-expanded={isMenuOpen}
+          >
+            <span className={styles.chevron}></span>
+            {currentProfileLabel}
+          </button>
+
+          {isMenuOpen && (
+            <div className={styles.dropdownMenu} role="menu" aria-label="Profile menu">
+              <button
+                type="button"
+                className={`${styles.menuItem} ${styles.settingsItem}`}
+                role="menuitem"
+                onClick={handleAccountSettings}
+              >
+                <span className={styles.menuIcon}>o</span>
+                Account Settings
+              </button>
+              <button type="button" className={styles.menuItem} role="menuitem" onClick={handleSignOut}>
+                <span className={styles.menuIcon}>]</span>
+                Sign Out
+              </button>
+            </div>
+          )}
+        </div>
+      </header>
+
+      {uniqueCategoryFilters.length > 0 && (
+        <div className={styles.categoryFilters} role="tablist" aria-label="Event category filters">
+          {uniqueCategoryFilters.map((category) => (
+            <button
+              key={category.value}
+              type="button"
+              className={`${styles.categoryButton} ${
+                selectedCategory === category.value ? styles.categoryButtonActive : ""
+              }`}
+              onClick={() => onCategoryChange?.(category.value)}
+              aria-pressed={selectedCategory === category.value}
+            >
+              {category.label}
+            </button>
+          ))}
+
+          <div className={styles.dateFilterWrap}>
             <button
               type="button"
-              className={`${styles.menuItem} ${styles.settingsItem}`}
-              role="menuitem"
-              onClick={handleAccountSettings}
+              className={`${styles.categoryButton} ${
+                dateRangeStart || dateRangeEnd ? styles.categoryButtonActive : ""
+              }`}
+              onClick={() => setIsDateModalOpen(true)}
+              aria-expanded={isDateModalOpen}
+              aria-controls="date-range-popup"
             >
-              <span className={styles.menuIcon}>o</span>
-              Account Settings
-            </button>
-            <button type="button" className={styles.menuItem} role="menuitem" onClick={handleSignOut}>
-              <span className={styles.menuIcon}>]</span>
-              Sign Out
+              {dateRangeLabel}
             </button>
           </div>
-        )}
-      </div>
-    </header>
+        </div>
+      )}
+
+      {isDateModalOpen && (
+        <div className={styles.dateModalOverlay} role="presentation" onClick={closeDateModal}>
+          <div
+            id="date-range-popup"
+            className={styles.dateModal}
+            role="dialog"
+            aria-modal="true"
+            aria-label="Select date range"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <p className={styles.dateModalTitle}>Select date range</p>
+            <label className={styles.dateField}>
+              <span>From</span>
+              <input type="date" value={draftDateStart} onChange={handleDateStartChange} />
+            </label>
+            <label className={styles.dateField}>
+              <span>To</span>
+              <input type="date" value={draftDateEnd} onChange={handleDateEndChange} />
+            </label>
+            <div className={styles.dateModalActions}>
+              <button type="button" className={styles.clearDateButton} onClick={clearDateRange}>
+                Clear
+              </button>
+              <button type="button" className={styles.dateSecondaryButton} onClick={closeDateModal}>
+                Cancel
+              </button>
+              <button type="button" className={styles.datePrimaryButton} onClick={applyDateRange}>
+                Apply
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
   );
 }

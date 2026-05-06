@@ -1,12 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import EventCard from "../../components/EventCard";
 import SearchBar from "../../components/SearchBar";
 import SkeletonCard from "../../components/SkeletonCard";
 import SidePanel from "../../components/SidePanel";
-import { fetchUpcomingEvents } from "../../lib/events";
+import { fetchCategories, fetchUpcomingEvents } from "../../lib/events";
 import RequireAuth from "../components/RequireAuth";
 import styles from "./page.module.css";
 
@@ -14,10 +14,36 @@ const RECOMMENDED_DISPLAY_LIMIT = 4;
 const UPCOMING_DISPLAY_LIMIT = 8;
 const SKELETON_PLACEHOLDERS = 8;
 
+function normalizeCategoryLabel(name) {
+  return (name || "").trim().toLowerCase();
+}
+
+function isWithinDateRange(iso, startDate, endDate) {
+  if (!startDate && !endDate) return true;
+  const eventDate = new Date(iso);
+  if (Number.isNaN(eventDate.getTime())) return false;
+
+  if (startDate) {
+    const start = new Date(`${startDate}T00:00:00`);
+    if (eventDate < start) return false;
+  }
+  if (endDate) {
+    const end = new Date(`${endDate}T23:59:59.999`);
+    if (eventDate > end) return false;
+  }
+  return true;
+}
+
 export default function DashboardPage() {
   const [upcomingEvents, setUpcomingEvents] = useState([]);
   const [upcomingLoading, setUpcomingLoading] = useState(true);
   const [upcomingError, setUpcomingError] = useState("");
+  const [eventQuery, setEventQuery] = useState("");
+  const [locationQuery, setLocationQuery] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState("all");
+  const [allCategories, setAllCategories] = useState([]);
+  const [dateRangeStart, setDateRangeStart] = useState("");
+  const [dateRangeEnd, setDateRangeEnd] = useState("");
 
   useEffect(() => {
     let cancelled = false;
@@ -43,13 +69,92 @@ export default function DashboardPage() {
     };
   }, []);
 
+  useEffect(() => {
+    let cancelled = false;
+    fetchCategories()
+      .then((list) => {
+        if (!cancelled) {
+          setAllCategories(Array.isArray(list) ? list : []);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setAllCategories([]);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const filteredUpcomingEvents = useMemo(() => {
+    const eventTerm = eventQuery.trim().toLowerCase();
+    const locationTerm = locationQuery.trim().toLowerCase();
+
+    return upcomingEvents.filter((event) => {
+      const title = event.title?.toLowerCase() ?? "";
+      const description = event.description?.toLowerCase() ?? "";
+      const location = event.location?.toLowerCase() ?? "";
+      const categoryName = event.category?.name?.toLowerCase() ?? "";
+
+      const matchesEvent =
+        !eventTerm ||
+        title.includes(eventTerm) ||
+        description.includes(eventTerm) ||
+        categoryName.includes(eventTerm);
+      const matchesLocation = !locationTerm || location.includes(locationTerm);
+      const matchesCategory =
+        selectedCategory === "all" ||
+        normalizeCategoryLabel(event.category?.name) === selectedCategory;
+      const matchesDate = isWithinDateRange(event.starts_at, dateRangeStart, dateRangeEnd);
+
+      return matchesEvent && matchesLocation && matchesCategory && matchesDate;
+    });
+  }, [upcomingEvents, eventQuery, locationQuery, selectedCategory, dateRangeStart, dateRangeEnd]);
+
+  const categoryFilters = useMemo(() => {
+    const seen = new Set();
+    const unique = allCategories
+      .map((category) => category?.name?.trim() || "")
+      .filter((name) => {
+        const key = normalizeCategoryLabel(name);
+        if (!key || seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      })
+      .map((name) => ({
+        value: normalizeCategoryLabel(name),
+        label: name,
+      }));
+
+    return [
+      { value: "all", label: "All" },
+      ...unique,
+    ];
+  }, [allCategories]);
+
+  function handleDateRangeChange(start, end) {
+    setDateRangeStart(start);
+    setDateRangeEnd(end);
+  }
+
   return (
     <RequireAuth>
       <div className={styles.dashboardLayout}>
         <SidePanel />
 
         <main className={styles.content}>
-          <SearchBar />
+          <SearchBar
+            onEventSearchChange={setEventQuery}
+            onLocationSearchChange={setLocationQuery}
+            eventSearchValue={eventQuery}
+            locationSearchValue={locationQuery}
+            categoryFilters={categoryFilters}
+            selectedCategory={selectedCategory}
+            onCategoryChange={setSelectedCategory}
+            dateRangeStart={dateRangeStart}
+            dateRangeEnd={dateRangeEnd}
+            onDateRangeChange={handleDateRangeChange}
+          />
 
           <section>
             <h1 className={styles.sectionTitle}>Recommended Events</h1>
@@ -60,7 +165,9 @@ export default function DashboardPage() {
                 ))}
 
               {!upcomingLoading &&
-                upcomingEvents.slice(0, RECOMMENDED_DISPLAY_LIMIT).map((event) => (
+                filteredUpcomingEvents
+                  .slice(0, RECOMMENDED_DISPLAY_LIMIT)
+                  .map((event) => (
                   <Link
                     key={event.id}
                     href={`/event?id=${event.id}`}
@@ -70,9 +177,11 @@ export default function DashboardPage() {
                   </Link>
                 ))}
 
-              {!upcomingLoading && upcomingEvents.length === 0 && !upcomingError && (
+              {!upcomingLoading &&
+                filteredUpcomingEvents.length === 0 &&
+                !upcomingError && (
                 <p className={styles.upcomingInlineMessage}>
-                  No published upcoming events to highlight yet.
+                  No events match your current search.
                 </p>
               )}
             </div>
@@ -100,15 +209,14 @@ export default function DashboardPage() {
 
               {!upcomingLoading &&
                 !upcomingError &&
-                upcomingEvents.length === 0 && (
+                filteredUpcomingEvents.length === 0 && (
                   <p className={styles.upcomingInlineMessage}>
-                    No upcoming published events yet. Publish an event with a future start time to see it
-                    here.
+                    No events match your current search.
                   </p>
                 )}
 
               {!upcomingLoading &&
-                upcomingEvents.map((event) => (
+                filteredUpcomingEvents.map((event) => (
                   <Link
                     key={event.id}
                     href={`/event?id=${event.id}`}

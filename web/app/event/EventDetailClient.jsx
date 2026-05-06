@@ -176,6 +176,7 @@ export default function EventDetailClient({ eventId }) {
 
   const badgeClass = STATUS_BADGE[event.status] ?? styles.badgeDraft;
   const desc = event.description?.trim();
+  const onlineUrl = event.online_url?.trim() || "";
   const categoryName =
     event.category && typeof event.category === "object" && typeof event.category.name === "string"
       ? event.category.name.trim()
@@ -334,6 +335,21 @@ export default function EventDetailClient({ eventId }) {
                 {event.location?.trim() ? event.location.trim() : "—"}
               </dd>
             </div>
+            {onlineUrl ? (
+              <div>
+                <dt className={styles.dt}>online_url</dt>
+                <dd className={styles.dd}>
+                  <a
+                    href={onlineUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className={styles.inlineLink}
+                  >
+                    {onlineUrl}
+                  </a>
+                </dd>
+              </div>
+            ) : null}
             <div>
               <dt className={styles.dt}>starts_at</dt>
               <dd className={styles.dd}>{formatDateTime(event.starts_at)}</dd>
