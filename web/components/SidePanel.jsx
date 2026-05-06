@@ -75,22 +75,24 @@ export default function SidePanel() {
         ))}
       </div>
 
-      <div className={styles.section}>
-        <p className={styles.sectionLabel}>OTHERS</p>
-        {visibleSecondary.map((item) => (
-          <button
-            key={item.label}
-            type="button"
-            className={`${styles.navItem} ${
-              item.href && pathname === item.href ? styles.active : ""
-            } ${!item.href ? styles.navItemDisabled : ""}`}
-            onClick={() => navigate(item.href)}
-            disabled={!item.href}
-          >
-            {item.label}
-          </button>
-        ))}
-      </div>
+      {visibleSecondary.length > 0 ? (
+        <div className={styles.section}>
+          <p className={styles.sectionLabel}>OTHERS</p>
+          {visibleSecondary.map((item) => (
+            <button
+              key={item.label}
+              type="button"
+              className={`${styles.navItem} ${
+                item.href && pathname === item.href ? styles.active : ""
+              } ${!item.href ? styles.navItemDisabled : ""}`}
+              onClick={() => navigate(item.href)}
+              disabled={!item.href}
+            >
+              {item.label}
+            </button>
+          ))}
+        </div>
+      ) : null}
 
       {role === "attendee" && (
         <button
