@@ -11,6 +11,11 @@ import {
   mapApiErrorsToFormKeys,
   parseValidationErrors,
 } from "../../lib/events";
+import {
+  formatCoordinateForApi,
+  geocodeAddress,
+  searchAddressSuggestions,
+} from "../../lib/geocoding";
 import styles from "./page.module.css";
 
 function newScheduleRow() {
@@ -59,6 +64,8 @@ export default function CreateEventPage() {
   const [fieldErrors, setFieldErrors] = useState({});
   const [generalError, setGeneralError] = useState("");
   const [createdSummary, setCreatedSummary] = useState(null);
+  const [locationSuggestions, setLocationSuggestions] = useState([]);
+  const [locationLookupBusy, setLocationLookupBusy] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -85,6 +92,43 @@ export default function CreateEventPage() {
       return true;
     });
   }, [categories]);
+
+  useEffect(() => {
+    const canLookup = form.venueType === "in_person" || form.venueType === "hybrid";
+    const query = form.location.trim();
+    if (!canLookup || query.length < 3) {
+      setLocationSuggestions([]);
+      setLocationLookupBusy(false);
+      return;
+    }
+
+    const controller = new AbortController();
+    setLocationLookupBusy(true);
+    const timeoutId = setTimeout(async () => {
+      try {
+        const list = await searchAddressSuggestions(query, { signal: controller.signal, limit: 5 });
+        setLocationSuggestions(list);
+      } catch {
+        setLocationSuggestions([]);
+      } finally {
+        setLocationLookupBusy(false);
+      }
+    }, 300);
+
+    return () => {
+      clearTimeout(timeoutId);
+      controller.abort();
+    };
+  }, [form.location, form.venueType]);
+
+  function applyLocationSuggestion(suggestion) {
+    const lat = formatCoordinateForApi(suggestion.latitude);
+    const lng = formatCoordinateForApi(suggestion.longitude);
+    updateField("location", suggestion.label);
+    updateField("latitude", lat ?? "");
+    updateField("longitude", lng ?? "");
+    setLocationSuggestions([]);
+  }
 
   function updateField(field, value) {
     setFieldErrors((prev) => {
@@ -128,8 +172,8 @@ export default function CreateEventPage() {
     let latitude = null;
     let longitude = null;
     if (latRaw !== "" && lngRaw !== "") {
-      latitude = latRaw;
-      longitude = lngRaw;
+      latitude = formatCoordinateForApi(latRaw) ?? latRaw;
+      longitude = formatCoordinateForApi(lngRaw) ?? lngRaw;
     }
 
     const schedule_items = scheduleRows
@@ -177,6 +221,24 @@ export default function CreateEventPage() {
     setCreatedSummary(null);
 
     const payload = buildPayload();
+    if (
+      (payload.venue_type === "in_person" || payload.venue_type === "hybrid") &&
+      payload.location &&
+      (payload.latitude == null || payload.longitude == null)
+    ) {
+      const bestMatch = await geocodeAddress(payload.location).catch(() => null);
+      if (bestMatch) {
+        const lat = formatCoordinateForApi(bestMatch.latitude);
+        const lng = formatCoordinateForApi(bestMatch.longitude);
+        payload.latitude = lat;
+        payload.longitude = lng;
+        setForm((current) => ({
+          ...current,
+          latitude: lat ?? "",
+          longitude: lng ?? "",
+        }));
+      }
+    }
 
     try {
       const created = await createEvent(payload);
@@ -329,6 +391,23 @@ export default function CreateEventPage() {
                     {fieldErrors.location && (
                       <span className={styles.fieldError}>{fieldErrors.location}</span>
                     )}
+                    {locationLookupBusy ? (
+                      <span className={styles.locationHint}>Searching addresses…</span>
+                    ) : null}
+                    {locationSuggestions.length > 0 ? (
+                      <div className={styles.locationSuggestions}>
+                        {locationSuggestions.map((item) => (
+                          <button
+                            key={`${item.latitude}-${item.longitude}-${item.label}`}
+                            type="button"
+                            className={styles.locationSuggestionButton}
+                            onClick={() => applyLocationSuggestion(item)}
+                          >
+                            {item.label}
+                          </button>
+                        ))}
+                      </div>
+                    ) : null}
                   </label>
 
                   <label className={styles.field}>

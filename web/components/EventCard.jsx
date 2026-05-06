@@ -67,6 +67,95 @@ function categoryLabel(event) {
   return null;
 }
 
+const US_STATE_ABBREVIATIONS = {
+  alabama: "AL",
+  alaska: "AK",
+  arizona: "AZ",
+  arkansas: "AR",
+  california: "CA",
+  colorado: "CO",
+  connecticut: "CT",
+  delaware: "DE",
+  florida: "FL",
+  georgia: "GA",
+  hawaii: "HI",
+  idaho: "ID",
+  illinois: "IL",
+  indiana: "IN",
+  iowa: "IA",
+  kansas: "KS",
+  kentucky: "KY",
+  louisiana: "LA",
+  maine: "ME",
+  maryland: "MD",
+  massachusetts: "MA",
+  michigan: "MI",
+  minnesota: "MN",
+  mississippi: "MS",
+  missouri: "MO",
+  montana: "MT",
+  nebraska: "NE",
+  nevada: "NV",
+  "new hampshire": "NH",
+  "new jersey": "NJ",
+  "new mexico": "NM",
+  "new york": "NY",
+  "north carolina": "NC",
+  "north dakota": "ND",
+  ohio: "OH",
+  oklahoma: "OK",
+  oregon: "OR",
+  pennsylvania: "PA",
+  "rhode island": "RI",
+  "south carolina": "SC",
+  "south dakota": "SD",
+  tennessee: "TN",
+  texas: "TX",
+  utah: "UT",
+  vermont: "VT",
+  virginia: "VA",
+  washington: "WA",
+  "west virginia": "WV",
+  wisconsin: "WI",
+  wyoming: "WY",
+  "district of columbia": "DC",
+};
+
+function shortLocationLabel(location) {
+  const raw = String(location || "").trim();
+  if (!raw) return null;
+  const parts = raw.split(",").map((p) => p.trim()).filter(Boolean);
+  if (parts.length <= 2) return raw;
+
+  let stateIndex = -1;
+  let stateAbbr = null;
+  for (let i = parts.length - 1; i >= 0; i -= 1) {
+    const token = parts[i];
+    const normalized = token.toLowerCase();
+    if (US_STATE_ABBREVIATIONS[normalized]) {
+      stateIndex = i;
+      stateAbbr = US_STATE_ABBREVIATIONS[normalized];
+      break;
+    }
+    if (/^[A-Z]{2}$/.test(token)) {
+      stateIndex = i;
+      stateAbbr = token;
+      break;
+    }
+  }
+
+  if (stateIndex > 0 && stateAbbr) {
+    for (let i = stateIndex - 1; i >= 0; i -= 1) {
+      const cityCandidate = parts[i];
+      if (/county$/i.test(cityCandidate)) continue;
+      if (/^\d{5}(?:-\d{4})?$/.test(cityCandidate)) continue;
+      return `${cityCandidate}, ${stateAbbr}`;
+    }
+  }
+
+  return parts.slice(0, 2).join(", ");
+}
+
 export default function EventCard({ event }) {
   const { month, day } = formatDateBox(event.starts_at);
   const statusClass =
@@ -74,6 +163,7 @@ export default function EventCard({ event }) {
   const schedule = formatSchedule(event.starts_at, event.ends_at);
   const organizer = organizerLabel(event);
   const category = categoryLabel(event);
+  const location = shortLocationLabel(event.location);
   const capacityText =
     event.capacity == null ? "No capacity limit" : `Max ${event.capacity} attendees`;
   const latitude = event.latitude == null ? null : Number(event.latitude);
@@ -110,8 +200,8 @@ export default function EventCard({ event }) {
           {category ? (
             <span className={`${styles.tag} ${styles.tagCategory}`}>{category}</span>
           ) : null}
-          {event.location?.trim() ? (
-            <span className={styles.tag}>{event.location.trim()}</span>
+          {location ? (
+            <span className={styles.tag}>{location}</span>
           ) : null}
           <span className={styles.tag}>{capacityText}</span>
         </div>

@@ -6,6 +6,7 @@ import dynamic from "next/dynamic";
 import { useSearchParams } from "next/navigation";
 import { getStoredUser } from "../../lib/auth";
 import { fetchEvent, registerForEvent, unregisterFromEvent } from "../../lib/events";
+import { geocodeAddress } from "../../lib/geocoding";
 import { buildGoogleCalendarUrl } from "../../lib/googleCalendar";
 import styles from "./page.module.css";
 
@@ -68,6 +69,7 @@ export default function EventDetailClient({ eventId }) {
   const [registerError, setRegisterError] = useState("");
   const [registerBusy, setRegisterBusy] = useState(false);
   const [user, setUser] = useState(null);
+  const [resolvedCoords, setResolvedCoords] = useState(null);
   const currentEventId =
     searchParams?.get("id") ?? (eventId == null ? null : String(eventId));
 
@@ -121,6 +123,48 @@ export default function EventDetailClient({ eventId }) {
   useEffect(() => {
     load();
   }, [load]);
+
+  useEffect(() => {
+    const hasLatitude =
+      event?.latitude !== null &&
+      event?.latitude !== undefined &&
+      event?.latitude !== "" &&
+      Number.isFinite(Number(event?.latitude));
+    const hasLongitude =
+      event?.longitude !== null &&
+      event?.longitude !== undefined &&
+      event?.longitude !== "" &&
+      Number.isFinite(Number(event?.longitude));
+    const canUseAddressFallback =
+      event &&
+      (event.venue_type === "in_person" || event.venue_type === "hybrid") &&
+      !hasLatitude &&
+      !hasLongitude &&
+      typeof event.location === "string" &&
+      event.location.trim().length >= 3;
+    if (!canUseAddressFallback) {
+      setResolvedCoords(null);
+      return;
+    }
+
+    let cancelled = false;
+    geocodeAddress(event.location.trim())
+      .then((bestMatch) => {
+        if (!cancelled) {
+          setResolvedCoords(
+            bestMatch
+              ? { latitude: bestMatch.latitude, longitude: bestMatch.longitude }
+              : null
+          );
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setResolvedCoords(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [event]);
 
   async function handleRegister() {
     if (!event) return;
@@ -219,8 +263,14 @@ export default function EventDetailClient({ eventId }) {
     event.spots_remaining <= 0 &&
     !event.user_has_rsvp;
 
-  const latitude = event.latitude == null ? null : Number(event.latitude);
-  const longitude = event.longitude == null ? null : Number(event.longitude);
+  const latitude =
+    event.latitude == null || event.latitude === ""
+      ? resolvedCoords?.latitude ?? null
+      : Number(event.latitude);
+  const longitude =
+    event.longitude == null || event.longitude === ""
+      ? resolvedCoords?.longitude ?? null
+      : Number(event.longitude);
   const canShowMap =
     (event.venue_type === "in_person" || event.venue_type === "hybrid") &&
     Number.isFinite(latitude) &&
