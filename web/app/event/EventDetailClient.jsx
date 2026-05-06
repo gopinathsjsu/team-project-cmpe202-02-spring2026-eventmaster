@@ -51,7 +51,6 @@ function organizerSummary(event) {
     (typeof event.organizer === "object" && event.organizer?.username
       ? event.organizer.username
       : null);
-  if (name != null && id != null) return `User #${id} (${name})`;
   if (name != null) return name;
   if (id != null) return `User #${id}`;
   return "—";
@@ -181,6 +180,7 @@ export default function EventDetailClient({ eventId }) {
     event.category && typeof event.category === "object" && typeof event.category.name === "string"
       ? event.category.name.trim()
       : "";
+  const isAttendee = String(user?.role || "").toLowerCase() === "attendee";
   const isOrganizer = Boolean(user && Number(user.id) === Number(event.organizer_id));
   const isPublished = event.status === "published";
   const atCapacity =
@@ -199,13 +199,15 @@ export default function EventDetailClient({ eventId }) {
         <header className={styles.hero}>
           <div className={styles.heroInner}>
             <div className={styles.statusRow}>
-              <span className={`${styles.badge} ${badgeClass}`}>
-                {formatStatus(event.status)}
-              </span>
+              {!isAttendee ? (
+                <span className={`${styles.badge} ${badgeClass}`}>
+                  {formatStatus(event.status)}
+                </span>
+              ) : null}
               {categoryName ? (
                 <span className={styles.categoryBadge}>{categoryName}</span>
               ) : null}
-              <span className={styles.eventId}>Event id · {event.id}</span>
+              {!isAttendee ? <span className={styles.eventId}>Event id · {event.id}</span> : null}
             </div>
             <h1 className={styles.title}>{event.title}</h1>
           </div>
@@ -305,10 +307,12 @@ export default function EventDetailClient({ eventId }) {
         <section className={styles.detailCard} aria-label="Event details">
           <p className={styles.sectionLabel}>Details</p>
           <dl className={styles.dl}>
-            <div>
-              <dt className={styles.dt}>id</dt>
-              <dd className={styles.dd}>{event.id}</dd>
-            </div>
+            {!isAttendee ? (
+              <div>
+                <dt className={styles.dt}>id</dt>
+                <dd className={styles.dd}>{event.id}</dd>
+              </div>
+            ) : null}
             <div>
               <dt className={styles.dt}>organizer</dt>
               <dd className={styles.dd}>{organizerSummary(event)}</dd>
@@ -351,17 +355,19 @@ export default function EventDetailClient({ eventId }) {
               </div>
             ) : null}
             <div>
-              <dt className={styles.dt}>starts_at</dt>
+              <dt className={styles.dt}>starts at</dt>
               <dd className={styles.dd}>{formatDateTime(event.starts_at)}</dd>
             </div>
             <div>
-              <dt className={styles.dt}>ends_at</dt>
+              <dt className={styles.dt}>ends at</dt>
               <dd className={styles.dd}>{formatDateTime(event.ends_at)}</dd>
             </div>
-            <div>
-              <dt className={styles.dt}>status</dt>
-              <dd className={styles.dd}>{event.status}</dd>
-            </div>
+            {!isAttendee ? (
+              <div>
+                <dt className={styles.dt}>status</dt>
+                <dd className={styles.dd}>{event.status}</dd>
+              </div>
+            ) : null}
             <div>
               <dt className={styles.dt}>capacity</dt>
               <dd className={styles.dd}>{formatCapacity(event.capacity)}</dd>
@@ -373,11 +379,11 @@ export default function EventDetailClient({ eventId }) {
               </div>
             ) : null}
             <div>
-              <dt className={styles.dt}>created_at</dt>
+              <dt className={styles.dt}>created at</dt>
               <dd className={styles.dd}>{formatDateTime(event.created_at)}</dd>
             </div>
             <div>
-              <dt className={styles.dt}>updated_at</dt>
+              <dt className={styles.dt}>updated at</dt>
               <dd className={styles.dd}>{formatDateTime(event.updated_at)}</dd>
             </div>
           </dl>

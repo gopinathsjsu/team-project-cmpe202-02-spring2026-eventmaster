@@ -2,7 +2,6 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import SearchBar from "../../components/SearchBar";
 import SidePanel from "../../components/SidePanel";
 import RequireAuth from "../components/RequireAuth";
 import RequireOrganizer from "../components/RequireOrganizer";
@@ -211,11 +210,6 @@ export default function CreateEventPage() {
           <SidePanel />
 
           <main className={styles.content}>
-            <SearchBar
-              eventPlaceholder="Search your event drafts..."
-              locationPlaceholder="Search event venues..."
-            />
-
             <section className={styles.headerSection}>
               <h1 className={styles.title}>Create an Event</h1>
               <p className={styles.subtitle}>

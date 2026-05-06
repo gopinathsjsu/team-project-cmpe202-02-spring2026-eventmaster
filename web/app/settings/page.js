@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import SearchBar from "../../components/SearchBar";
 import SidePanel from "../../components/SidePanel";
 import RequireAuth from "../components/RequireAuth";
 import {
@@ -142,8 +141,6 @@ export default function SettingsPage() {
         <SidePanel />
 
         <main className={styles.content}>
-          <SearchBar />
-
           <section className={styles.headerSection}>
             <h1 className={styles.title}>Account Settings</h1>
             <p className={styles.subtitle}>

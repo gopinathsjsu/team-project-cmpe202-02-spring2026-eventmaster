@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import SearchBar from "../../components/SearchBar";
 import SidePanel from "../../components/SidePanel";
 import { fetchMyRegisteredEvents } from "../../lib/events";
 import { buildGoogleCalendarUrl } from "../../lib/googleCalendar";
@@ -327,11 +326,6 @@ export default function CalendarPage() {
         <SidePanel />
 
         <main className={styles.content}>
-          <SearchBar
-            eventPlaceholder="Search registered events..."
-            locationPlaceholder="Search event locations..."
-          />
-
           <section className={styles.headerSection}>
             <h1 className={styles.title}>Your Calendar</h1>
             <p className={styles.subtitle}>

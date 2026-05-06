@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import SearchBar from "../../components/SearchBar";
 import SidePanel from "../../components/SidePanel";
 import {
   cancelRegistrationForUser,
@@ -147,15 +146,6 @@ export default function ManageAttendeesPage() {
           <SidePanel />
 
           <main className={styles.content}>
-            <SearchBar
-              eventPlaceholder="Search your events by title..."
-              locationPlaceholder="Filter by location / venue..."
-              eventValue={eventSearch}
-              onEventChange={setEventSearch}
-              locationValue={locationSearch}
-              onLocationChange={setLocationSearch}
-            />
-
             <header className={styles.headerSection}>
               <h1 className={styles.title}>Manage attendees</h1>
               <p className={styles.subtitle}>
