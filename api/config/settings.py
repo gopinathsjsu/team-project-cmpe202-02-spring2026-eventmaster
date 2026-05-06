@@ -46,8 +46,8 @@ INSTALLED_APPS = [
     'corsheaders',
     'rest_framework',
     'django_filters',
-    'accounts',
-    'events',
+    'accounts.apps.AccountsConfig',
+    'events.apps.EventsConfig',
 ]
 
 MIDDLEWARE = [
