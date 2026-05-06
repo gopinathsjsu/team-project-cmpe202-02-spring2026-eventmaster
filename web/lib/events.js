@@ -286,3 +286,55 @@ export async function createEvent(payload) {
   }
   return data;
 }
+
+export async function updateEvent(eventId, payload) {
+  const access = getAccessToken();
+  if (!access) {
+    const err = new Error("You are not signed in.");
+    err.body = { detail: err.message };
+    throw err;
+  }
+
+  const response = await fetch(`${API_BASE_URL}/events/${eventId}/manage/`, {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${access}`,
+    },
+    body: JSON.stringify(payload),
+  });
+
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    const err = new Error("Could not update event.");
+    err.status = response.status;
+    err.body = data;
+    throw err;
+  }
+  return data;
+}
+
+export async function deleteEvent(eventId) {
+  const access = getAccessToken();
+  if (!access) {
+    const err = new Error("You are not signed in.");
+    err.code = "NO_TOKEN";
+    throw err;
+  }
+
+  const response = await fetch(`${API_BASE_URL}/events/${eventId}/manage/`, {
+    method: "DELETE",
+    headers: {
+      Authorization: `Bearer ${access}`,
+    },
+  });
+
+  if (response.status === 204) return;
+
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    const msg =
+      typeof data.detail === "string" ? data.detail : "Could not delete event.";
+    throw new Error(msg);
+  }
+}

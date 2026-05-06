@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import SearchBar from "../../components/SearchBar";
 import SidePanel from "../../components/SidePanel";
-import { fetchMyOrganizedEvents } from "../../lib/events";
+import { deleteEvent, fetchMyOrganizedEvents } from "../../lib/events";
 import RequireAuth from "../components/RequireAuth";
 import styles from "./page.module.css";
 
@@ -50,6 +50,7 @@ export default function YourEventsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [isForbidden, setIsForbidden] = useState(false);
+  const [deletingId, setDeletingId] = useState(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -95,6 +96,23 @@ export default function YourEventsPage() {
     pending_approval: styles.pending,
     cancelled: styles.cancelled,
   };
+
+  async function handleDelete(event) {
+    setError("");
+    const ok = window.confirm(
+      `Delete "${event.title}"? This cannot be undone.`
+    );
+    if (!ok) return;
+    try {
+      setDeletingId(event.id);
+      await deleteEvent(event.id);
+      setEvents((prev) => prev.filter((e) => e.id !== event.id));
+    } catch (err) {
+      setError(err.message || "Could not delete event.");
+    } finally {
+      setDeletingId(null);
+    }
+  }
 
   return (
     <RequireAuth>
@@ -190,7 +208,10 @@ export default function YourEventsPage() {
 
                     <div className={styles.actions}>
                       <Link href={`/event?id=${event.id}`} className={styles.primaryLink}>
-                        View / manage
+                        View
+                      </Link>
+                      <Link href={`/edit-event?id=${event.id}`} className={styles.secondaryLink}>
+                        Edit
                       </Link>
                       <Link
                         href={`/manage-attendees?event=${event.id}`}
@@ -198,6 +219,14 @@ export default function YourEventsPage() {
                       >
                         Registrations
                       </Link>
+                      <button
+                        type="button"
+                        className={styles.secondaryLink}
+                        onClick={() => handleDelete(event)}
+                        disabled={deletingId === event.id}
+                      >
+                        {deletingId === event.id ? "Deleting…" : "Delete"}
+                      </button>
                     </div>
                   </article>
                 ))}

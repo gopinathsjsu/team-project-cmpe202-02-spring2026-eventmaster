@@ -210,3 +210,149 @@ class EventCreateSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         validated_data["organizer"] = self.context["request"].user
         return super().create(validated_data)
+
+
+class EventUpdateSerializer(serializers.ModelSerializer):
+    """Update events (organizers/admins). Allows partial updates with the same validations as create."""
+
+    category = serializers.PrimaryKeyRelatedField(
+        queryset=Category.objects.all(),
+        required=False,
+        allow_null=False,
+    )
+    schedule_items = serializers.ListField(
+        child=serializers.DictField(),
+        required=False,
+    )
+
+    class Meta:
+        model = Event
+        fields = (
+            "title",
+            "description",
+            "category",
+            "venue_type",
+            "location",
+            "online_url",
+            "latitude",
+            "longitude",
+            "cover_image",
+            "starts_at",
+            "ends_at",
+            "status",
+            "capacity",
+            "is_free",
+            "price",
+            "currency",
+            "schedule_items",
+        )
+
+    def validate_title(self, value):
+        value = (value or "").strip()
+        if not value:
+            raise serializers.ValidationError("Title may not be blank.")
+        return value
+
+    def validate_capacity(self, value):
+        if value is not None and value < 1:
+            raise serializers.ValidationError("Capacity must be at least 1.")
+        return value
+
+    def validate_schedule_items(self, value):
+        cleaned = []
+        for idx, row in enumerate(value or []):
+            if not isinstance(row, dict):
+                raise serializers.ValidationError(f"Item {idx + 1} must be an object.")
+            title = (row.get("title") or "").strip()
+            if not title:
+                raise serializers.ValidationError(f"Item {idx + 1} requires a title.")
+            starts_raw = row.get("starts_at")
+            ends_raw = row.get("ends_at")
+            if not starts_raw or not ends_raw:
+                raise serializers.ValidationError(
+                    f"Item {idx + 1} requires starts_at and ends_at (ISO 8601)."
+                )
+            starts = (
+                parse_datetime(starts_raw)
+                if isinstance(starts_raw, str)
+                else starts_raw
+            )
+            ends = parse_datetime(ends_raw) if isinstance(ends_raw, str) else ends_raw
+            if not starts or not ends:
+                raise serializers.ValidationError(f"Item {idx + 1} has invalid datetimes.")
+            if ends <= starts:
+                raise serializers.ValidationError(
+                    f"Item {idx + 1}: end must be after start."
+                )
+            cleaned.append(
+                {
+                    "title": title,
+                    "starts_at": starts_raw if isinstance(starts_raw, str) else starts.isoformat(),
+                    "ends_at": ends_raw if isinstance(ends_raw, str) else ends.isoformat(),
+                }
+            )
+        return cleaned
+
+    def validate(self, attrs):
+        instance = getattr(self, "instance", None)
+
+        venue_type = attrs.get("venue_type") if "venue_type" in attrs else getattr(instance, "venue_type", Event.VenueType.IN_PERSON)
+        location = (attrs.get("location") if "location" in attrs else getattr(instance, "location", "")) or ""
+        online_url = (attrs.get("online_url") if "online_url" in attrs else getattr(instance, "online_url", "")) or ""
+        location = location.strip()
+        online_url = online_url.strip()
+
+        if venue_type == Event.VenueType.IN_PERSON and not location:
+            raise serializers.ValidationError(
+                {"location": "Location is required for in-person events."}
+            )
+        if venue_type == Event.VenueType.ONLINE and not online_url:
+            raise serializers.ValidationError(
+                {"online_url": "Meeting or stream URL is required for online events."}
+            )
+        if venue_type == Event.VenueType.HYBRID:
+            if not location:
+                raise serializers.ValidationError(
+                    {"location": "Location is required for hybrid events."}
+                )
+            if not online_url:
+                raise serializers.ValidationError(
+                    {"online_url": "Online URL is required for hybrid events."}
+                )
+
+        if "is_free" in attrs:
+            is_free = attrs.get("is_free")
+        else:
+            is_free = getattr(instance, "is_free", True)
+        if "price" in attrs:
+            price = attrs.get("price")
+        else:
+            price = getattr(instance, "price", None)
+
+        if not is_free:
+            if price is None:
+                raise serializers.ValidationError(
+                    {"price": "Price is required when the event is not free."}
+                )
+            if price <= 0:
+                raise serializers.ValidationError(
+                    {"price": "Price must be greater than zero for paid events."}
+                )
+        else:
+            attrs["price"] = None
+
+        lat = attrs.get("latitude") if "latitude" in attrs else getattr(instance, "latitude", None)
+        lng = attrs.get("longitude") if "longitude" in attrs else getattr(instance, "longitude", None)
+        if (lat is None) ^ (lng is None):
+            raise serializers.ValidationError(
+                "Provide both latitude and longitude for a map pin, or leave both empty."
+            )
+
+        starts_at = attrs.get("starts_at") if "starts_at" in attrs else getattr(instance, "starts_at", None)
+        ends_at = attrs.get("ends_at") if "ends_at" in attrs else getattr(instance, "ends_at", None)
+        if starts_at and ends_at and ends_at <= starts_at:
+            raise serializers.ValidationError(
+                {"ends_at": "End time must be after start time."}
+            )
+
+        return attrs

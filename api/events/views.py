@@ -7,12 +7,15 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from accounts.permissions import IsOrganizerOrAdmin, IsRoleAdmin
+from accounts.permissions import user_role
+from accounts.models import Profile
 from events.models import Category, Event, EventRsvp
 from events.serializers import (
     CategorySerializer,
     EventCreateSerializer,
     EventDetailSerializer,
     EventReadSerializer,
+    EventUpdateSerializer,
 )
 
 
@@ -204,3 +207,26 @@ class EventListCreateView(generics.ListCreateAPIView):
         event = serializer.save()
         read = EventReadSerializer(event, context={"request": request})
         return Response(read.data, status=201)
+
+
+class EventManageView(generics.RetrieveUpdateDestroyAPIView):
+    """Manage a single event (organizer owner or admin)."""
+
+    permission_classes = [permissions.IsAuthenticated, IsOrganizerOrAdmin]
+    queryset = Event.objects.select_related("category", "organizer").prefetch_related("rsvps")
+
+    def get_serializer_class(self):
+        if self.request.method in ("PUT", "PATCH"):
+            return EventUpdateSerializer
+        return EventDetailSerializer
+
+    def get_queryset(self):
+        qs = super().get_queryset()
+        role = user_role(self.request.user)
+        if role == Profile.Role.ADMIN:
+            return qs
+        return qs.filter(organizer=self.request.user)
+
+    def perform_update(self, serializer):
+        event = serializer.save()
+        return event
