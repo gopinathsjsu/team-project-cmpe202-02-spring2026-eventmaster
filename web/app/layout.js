@@ -1,5 +1,6 @@
 import { DM_Sans } from "next/font/google";
 import "./globals.css";
+import "leaflet/dist/leaflet.css";
 
 const dmSans = DM_Sans({
   subsets: ["latin"],

@@ -2,10 +2,14 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
+import dynamic from "next/dynamic";
+import { useSearchParams } from "next/navigation";
 import { getStoredUser } from "../../lib/auth";
 import { fetchEvent, registerForEvent, unregisterFromEvent } from "../../lib/events";
 import { buildGoogleCalendarUrl } from "../../lib/googleCalendar";
 import styles from "./page.module.css";
+
+const EventMap = dynamic(() => import("./EventMap.jsx"), { ssr: false });
 
 const STATUS_BADGE = {
   published: styles.badgePublished,
@@ -57,36 +61,62 @@ function organizerSummary(event) {
 }
 
 export default function EventDetailClient({ eventId }) {
+  const searchParams = useSearchParams();
   const [event, setEvent] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [registerError, setRegisterError] = useState("");
   const [registerBusy, setRegisterBusy] = useState(false);
   const [user, setUser] = useState(null);
+  const currentEventId =
+    searchParams?.get("id") ?? (eventId == null ? null : String(eventId));
 
   useEffect(() => {
     setUser(getStoredUser());
   }, []);
 
+  useEffect(() => {
+    // Work around App Router/history edge cases where query-param navigation can
+    // leave this page in a stale "loading" state after back/forward.
+    function handleHistoryNavigation() {
+      window.location.reload();
+    }
+
+    window.addEventListener("popstate", handleHistoryNavigation);
+    return () => {
+      window.removeEventListener("popstate", handleHistoryNavigation);
+    };
+  }, []);
+
   const load = useCallback(async () => {
-    if (!eventId || Number.isNaN(Number(eventId))) {
+    if (!currentEventId || Number.isNaN(Number(currentEventId))) {
       setEvent(null);
       setLoading(false);
       setError("");
       return;
     }
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 12000);
+
     setLoading(true);
     setError("");
     try {
-      const data = await fetchEvent(eventId);
+      const data = await fetchEvent(currentEventId, { signal: controller.signal });
       setEvent(data);
     } catch (e) {
+      if (e?.name === "AbortError") {
+        setError("Loading timed out. Please retry.");
+        setEvent(null);
+        return;
+      }
       setEvent(null);
       setError(e.message || "Could not load event.");
     } finally {
+      clearTimeout(timeoutId);
       setLoading(false);
     }
-  }, [eventId]);
+  }, [currentEventId]);
 
   useEffect(() => {
     load();
@@ -120,7 +150,7 @@ export default function EventDetailClient({ eventId }) {
     }
   }
 
-  const missingId = !eventId || Number.isNaN(Number(eventId));
+  const missingId = !currentEventId || Number.isNaN(Number(currentEventId));
 
   if (missingId) {
     return (
@@ -188,6 +218,16 @@ export default function EventDetailClient({ eventId }) {
     event.spots_remaining !== undefined &&
     event.spots_remaining <= 0 &&
     !event.user_has_rsvp;
+
+  const latitude = event.latitude == null ? null : Number(event.latitude);
+  const longitude = event.longitude == null ? null : Number(event.longitude);
+  const canShowMap =
+    (event.venue_type === "in_person" || event.venue_type === "hybrid") &&
+    Number.isFinite(latitude) &&
+    Number.isFinite(longitude);
+  const googleMapsUrl = canShowMap
+    ? `https://www.google.com/maps?q=${latitude},${longitude}`
+    : null;
 
   return (
     <div className={styles.page}>
@@ -388,6 +428,29 @@ export default function EventDetailClient({ eventId }) {
             </div>
           </dl>
         </section>
+
+        {canShowMap ? (
+          <section className={styles.mapCard} aria-label="Event location map">
+            <p className={styles.sectionLabel}>Location map</p>
+            <div className={styles.mapWrap}>
+              <EventMap
+                latitude={latitude}
+                longitude={longitude}
+                locationLabel={event.location?.trim() ? event.location.trim() : null}
+              />
+            </div>
+            {googleMapsUrl ? (
+              <a
+                className={styles.mapLink}
+                href={googleMapsUrl}
+                target="_blank"
+                rel="noreferrer"
+              >
+                Open in Google Maps
+              </a>
+            ) : null}
+          </section>
+        ) : null}
       </div>
     </div>
   );
