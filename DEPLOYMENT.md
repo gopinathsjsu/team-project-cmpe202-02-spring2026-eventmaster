@@ -61,8 +61,10 @@ eb ssh --command 'cd /var/app/current; export POSTGRES_DB=$(/opt/elasticbeanstal
 
 reset + reseed db
 ```powershell
-eb ssh --command 'cd /var/app/current; export POSTGRES_DB=$(/opt/elasticbeanstalk/bin/get-config environment -k POSTGRES_DB); export POSTGRES_USER=$(/opt/elasticbeanstalk/bin/get-config environment -k POSTGRES_USER); export POSTGRES_PASSWORD=$(/opt/elasticbeanstalk/bin/get-config environment -k POSTGRES_PASSWORD); export POSTGRES_HOST=$(/opt/elasticbeanstalk/bin/get-config environment -k POSTGRES_HOST); export POSTGRES_PORT=$(/opt/elasticbeanstalk/bin/get-config environment -k POSTGRES_PORT); /var/app/venv/*/bin/python manage.py migrate --noinput; /var/app/venv/*/bin/python manage.py seed --password password123'
+eb ssh --command 'cd /var/app/current; export POSTGRES_DB=$(/opt/elasticbeanstalk/bin/get-config environment -k POSTGRES_DB); export POSTGRES_USER=$(/opt/elasticbeanstalk/bin/get-config environment -k POSTGRES_USER); export POSTGRES_PASSWORD=$(/opt/elasticbeanstalk/bin/get-config environment -k POSTGRES_PASSWORD); export POSTGRES_HOST=$(/opt/elasticbeanstalk/bin/get-config environment -k POSTGRES_HOST); export POSTGRES_PORT=$(/opt/elasticbeanstalk/bin/get-config environment -k POSTGRES_PORT); /var/app/venv/*/bin/python manage.py flush --no-input; /var/app/venv/*/bin/python manage.py seed --password password123'
 ```
+
+
 
 Health check endpoints:
 - `/api/health/`
