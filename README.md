@@ -32,7 +32,7 @@ Eventmaster is an EventBrite-like platform for discovering events, registering f
 | Calendar integration (Google Calendar) | `Done` | Event detail action opens Google Calendar URL |
 | Location and map integration (in-person/hybrid events) | `Done` | Leaflet map on event detail for in-person/hybrid events with coordinates |
 | RSVP tracking and attendee management (organizers) | `Done` | Organizer attendee list/remove registration APIs and UI pages |
-| Email/notification service (confirmations) | `Partial` | RSVP confirmation + organizer RSVP notification implemented|
+| Email/notification service (confirmations) | `Done` | RSVP confirmation + organizer RSVP notification implemented|
 | Admin moderation and event approval workflow | `Done` | `/api/events/admin/pending/`, `/approve/`, `/reject/`, admin approvals UI |
 | Secure API design with input validation | `Done` | DRF serializers/permissions, JWT auth, role checks, validation error handling |
 | Responsive and accessible web/mobile UI | `Done` | Responsive pages implemented; accessibility checks ongoing |
