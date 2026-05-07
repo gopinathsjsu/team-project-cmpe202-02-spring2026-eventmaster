@@ -28,9 +28,9 @@ Eventmaster is an EventBrite-like platform for discovering events, registering f
 
 ## 3) Agile And Scrum Artifacts
 
-- [Scrum Backlog Workbook](docs/ScrumBacklogWorkbook.pdf)
+- [Scrum Backlog Workbook and Burndown Charts](docs/ScrumBacklogWorkbook.pdf)
 - [Weekly Scrum Report](docs/weeklyScrum.pdf)
-- [XP Core Values Summary](docs/xpCoreValues.pdf)
+- [XP Core Values](docs/xpCoreValues.pdf)
 
 ## 4) Feature Set 
 
