@@ -70,6 +70,7 @@ Eventmaster is an EventBrite-like platform for discovering events, registering f
 
 ### Architecture Diagrams 
 - Component Diagram: 
+![Component Diagram](docs/componentDiagram.png) 
 - Deployment Diagram Production:
 ![Deployment Diagram Production](docs/deploymentDiagramCloud.png) 
 - Deployment Diagram Dev:
