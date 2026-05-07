@@ -41,14 +41,6 @@ Option A (project-native vars):
 - `POSTGRES_PASSWORD`
 - `POSTGRES_HOST`
 - `POSTGRES_PORT`
-
-Option B (Beanstalk/RDS style vars):
-- `RDS_DB_NAME`
-- `RDS_USERNAME`
-- `RDS_PASSWORD`
-- `RDS_HOSTNAME`
-- `RDS_PORT`
-
 Deploy:
 
 ```bash
@@ -59,6 +51,17 @@ Get API URL:
 
 ```bash
 eb status
+```
+
+Seed db
+
+```powershell
+eb ssh --command 'cd /var/app/current; export POSTGRES_DB=$(/opt/elasticbeanstalk/bin/get-config environment -k POSTGRES_DB); export POSTGRES_USER=$(/opt/elasticbeanstalk/bin/get-config environment -k POSTGRES_USER); export POSTGRES_PASSWORD=$(/opt/elasticbeanstalk/bin/get-config environment -k POSTGRES_PASSWORD); export POSTGRES_HOST=$(/opt/elasticbeanstalk/bin/get-config environment -k POSTGRES_HOST); export POSTGRES_PORT=$(/opt/elasticbeanstalk/bin/get-config environment -k POSTGRES_PORT); /var/app/venv/*/bin/python manage.py migrate --noinput; /var/app/venv/*/bin/python manage.py seed --password password123'
+```
+
+reset + reseed db
+```powershell
+eb ssh --command 'cd /var/app/current; export POSTGRES_DB=$(/opt/elasticbeanstalk/bin/get-config environment -k POSTGRES_DB); export POSTGRES_USER=$(/opt/elasticbeanstalk/bin/get-config environment -k POSTGRES_USER); export POSTGRES_PASSWORD=$(/opt/elasticbeanstalk/bin/get-config environment -k POSTGRES_PASSWORD); export POSTGRES_HOST=$(/opt/elasticbeanstalk/bin/get-config environment -k POSTGRES_HOST); export POSTGRES_PORT=$(/opt/elasticbeanstalk/bin/get-config environment -k POSTGRES_PORT); /var/app/venv/*/bin/python manage.py migrate --noinput; /var/app/venv/*/bin/python manage.py seed --password password123'
 ```
 
 Health check endpoints:
@@ -73,21 +76,11 @@ Import the repo in Vercel and set:
 
 Set Vercel environment variables:
 - `NEXT_PUBLIC_API_BASE_URL` = `https://<your-beanstalk-domain>/api`
-- `NEXT_PUBLIC_GOOGLE_CLIENT_ID` (if used)
-- `NEXT_PUBLIC_GOOGLE_CALENDAR_EMBED_URL` (if used)
+
 
 Deploy from Vercel dashboard (or `vercel --prod` from `web`).
 
-## 4) DNS and HTTPS
-
-- Point frontend DNS to Vercel (recommended for app UI domain).
-- Point API DNS to Beanstalk ALB (via Route 53 CNAME/alias).
-- Add TLS certs using AWS ACM for API domain and enable HTTPS on ALB listener.
-
-## 5) Recommended production checklist
 
 - Keep `DJANGO_DEBUG=0`.
 - Use a strong `DJANGO_SECRET_KEY`.
 - Restrict `ALLOWED_HOSTS`, `CORS_ALLOWED_ORIGINS`, and `CSRF_TRUSTED_ORIGINS` to real domains only.
-- Snapshot/backup RDS.
-- Enable CloudWatch alarms for ALB/EC2/RDS health.
