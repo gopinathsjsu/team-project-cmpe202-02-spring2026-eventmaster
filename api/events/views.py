@@ -60,6 +60,46 @@ def _send_rsvp_confirmation_email(*, user, event):
         )
 
 
+def _send_organizer_new_rsvp_email(*, attendee, event):
+    """Best-effort organizer notification sent when a new RSVP is created."""
+    recipient = (event.organizer.email or "").strip()
+    if not recipient:
+        return
+
+    subject = f"New RSVP for your event: {event.title}"
+    starts_at = timezone.localtime(event.starts_at).strftime("%A, %B %d at %I:%M %p %Z")
+    location = event.location.strip() if event.location else "Online / TBD"
+    attendee_email = (attendee.email or "").strip() or "No email on file"
+    body = (
+        f"Hi {event.organizer.username},\n\n"
+        "A new attendee has registered for your event.\n\n"
+        f"- Event: {event.title}\n"
+        f"- Starts: {starts_at}\n"
+        f"- Location: {location}\n"
+        f"- Attendee: {attendee.username} ({attendee_email})\n\n"
+        "You can review registrations from your organizer dashboard."
+    )
+
+    try:
+        send_mail(
+            subject=subject,
+            message=body,
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            recipient_list=[recipient],
+            fail_silently=False,
+        )
+    except Exception:
+        # RSVP should still succeed even if organizer email delivery fails.
+        logger.exception(
+            "Organizer RSVP notification email failed",
+            extra={
+                "organizer_id": event.organizer_id,
+                "attendee_id": attendee.id,
+                "event_id": event.id,
+            },
+        )
+
+
 class EventRetrieveView(generics.RetrieveAPIView):
     """Single event: published (anyone) or draft owned by the authenticated organizer."""
 
@@ -115,6 +155,7 @@ class EventRsvpView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
         _send_rsvp_confirmation_email(user=request.user, event=event)
+        _send_organizer_new_rsvp_email(attendee=request.user, event=event)
         event.refresh_from_db()
         data = EventDetailSerializer(event, context={"request": request}).data
         return Response(data, status=status.HTTP_201_CREATED)
