@@ -9,7 +9,7 @@ Eventmaster is an EventBrite-like platform for discovering events, registering f
 
 **Live demo URLs:**
 - Frontend: https://eventmaster-web-psi.vercel.app/
-- API Base URL: `<insert link>`
+- API Base URL: http://eventmaster-api-prod.eba-fncd4gax.us-east-1.elasticbeanstalk.com/api
 
 ## 2) Team And Ownership
 
