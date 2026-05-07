@@ -36,7 +36,6 @@ Eventmaster is an EventBrite-like platform for discovering events, registering f
 | Admin moderation and event approval workflow | `Done` | `/api/events/admin/pending/`, `/approve/`, `/reject/`, admin approvals UI |
 | Secure API design with input validation | `Done` | DRF serializers/permissions, JWT auth, role checks, validation error handling |
 | Responsive and accessible web/mobile UI | `Done` | Responsive pages implemented; accessibility checks ongoing |
-| UI calling deployed cloud backend | `Done` | ![Cloud network screenshot](docs/screenshots/) |
 | Deployed API + DB in cloud with load balancer | `Done` | ![Cloud deployment screenshot 1](docs/screenshots/beanstalkConfig.png)<br/>![Cloud deployment screenshot 2](docs/screenshots/dbConfig.png) |
 
 ## 4) Tech Stack
