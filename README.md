@@ -20,7 +20,13 @@ Eventmaster is an EventBrite-like platform for discovering events, registering f
 | Bhimsen Chhetri | https://github.com/bhimsenthapa1 | 
 | Michael Kao | https://github.com/mkao823 | 
 
-## 3) Feature Set 
+## 3) Agile And Scrum Artifacts
+
+- [Scrum Backlog Workbook](docs/ScrumBacklogWorkbook.pdf)
+- [Weekly Scrum Report](docs/weeklyScrum.pdf)
+- [XP Core Values Summary](docs/xpCoreValues.pdf)
+
+## 4) Feature Set 
 
 | Requirement  | Status | Evidence (API / UI / Cloud) |
 |---|---|---|
@@ -38,7 +44,7 @@ Eventmaster is an EventBrite-like platform for discovering events, registering f
 | Responsive and accessible web/mobile UI | `Done` | Responsive pages implemented; accessibility checks ongoing |
 | Deployed API + DB in cloud with load balancer | `Done` | ![Cloud deployment screenshot 1](docs/screenshots/beanstalkConfig.png)<br/>![Cloud deployment screenshot 2](docs/screenshots/dbConfig.png) |
 
-## 4) Tech Stack
+## 5) Tech Stack
 
 ### Frontend
 - Next.js (App Router)
@@ -59,7 +65,7 @@ Eventmaster is an EventBrite-like platform for discovering events, registering f
 - AWS managed RDS environment for postgres database
 - Vercel for frontend deployment
 
-## 5) Architecture Overview
+## 6) Architecture Overview
 
 ### System Flow
 1. Web UI sends JSON requests to REST API.
@@ -75,7 +81,7 @@ Eventmaster is an EventBrite-like platform for discovering events, registering f
 - Deployment Diagram Dev:
 ![Deployment Diagram Dev](docs/deploymentDiagramLocal.png) 
 
-## 6) API Summary (JSON, Validation, Errors)
+## 7) API Summary (JSON, Validation, Errors)
 
 All APIs use JSON input/output and include input validation plus error responses.
 
@@ -104,7 +110,7 @@ All APIs use JSON input/output and include input validation plus error responses
 - Forbidden: HTTP 403
 - Not found: HTTP 404
 
-## 7) Roles And Access Control 
+## 8) Roles And Access Control 
 
 ### Attendee
 - Register/login and maintain a personal profile
@@ -123,7 +129,7 @@ All APIs use JSON input/output and include input validation plus error responses
 - Approve or reject events
 - Access admin-only workflows and pages
 
-## 8) Local Setup And Run
+## 9) Local Setup And Run
 
 ### Prerequisites
 - Docker Desktop (or Docker Engine + Compose)
@@ -156,7 +162,7 @@ docker compose down
 docker compose down -v
 ```
 
-## 9) UI Wireframes
+## 10) UI Wireframes
 
 UI Wireframes
 - Login
@@ -174,7 +180,7 @@ UI Wireframes
 - Components
 ![Components wireframe](docs/screenshots/components.png)
 
-## 10) License And Acknowledgements
+## 11) License And Acknowledgements
 
 ### License
 San Jose State University 2026
