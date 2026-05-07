@@ -8,7 +8,7 @@ Eventmaster is an EventBrite-like platform for discovering events, registering f
 **Goal:** Build and deploy a full-stack event platform with role-based access, event management, registration, and deployment-ready APIs.
 
 **Live demo URLs:**
-- Frontend: `<insert link>`
+- Frontend: https://eventmaster-web-psi.vercel.app/
 - API Base URL: `<insert link>`
 
 ## 2) Team And Ownership
