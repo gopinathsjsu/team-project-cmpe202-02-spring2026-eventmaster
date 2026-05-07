@@ -156,7 +156,20 @@ docker compose down -v
 ## 9) UI Wireframes
 
 UI Wireframes
-- `<insert screenshots>`  
+- Login
+![Login wireframe](docs/screenshots/login.png)
+
+- Logout Dashboard
+![Logout dashboard wireframe](docs/screenshots/logoutDashboard.png)
+
+- Register
+![Register wireframe](docs/screenshots/register.png)
+
+- User Dashboard
+![User dashboard wireframe](docs/screenshots/attendeeDashboard.png)
+
+- Components
+![Components wireframe](docs/screenshots/components.png)
 
 ## 10) License And Acknowledgements
 
