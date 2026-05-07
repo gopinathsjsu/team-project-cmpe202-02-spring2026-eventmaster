@@ -120,7 +120,7 @@ All APIs use JSON input/output and include input validation plus error responses
 - Approve or reject events
 - Access admin-only workflows and pages
 
-## 13) Local Setup And Run
+## 8) Local Setup And Run
 
 ### Prerequisites
 - Docker Desktop (or Docker Engine + Compose)
@@ -153,12 +153,12 @@ docker compose down
 docker compose down -v
 ```
 
-## 16) UI Wireframes
+## 9) UI Wireframes
 
 UI Wireframes
 - `<insert screenshots>`  
 
-## 20) License And Acknowledgements
+## 10) License And Acknowledgements
 
 ### License
 San Jose State University 2026
