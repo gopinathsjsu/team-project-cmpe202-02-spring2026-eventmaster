@@ -23,7 +23,7 @@ Eventmaster is an EventBrite-like platform for discovering events, registering f
 ### Summary Of Contributions
 - **Aaron Jiang**: Frontend implementation, frontend-backend integration, and service integration.
 - **Rohan Ohlan**: Backend development and cloud deployment work.
-- **Bhimsen Chhetri**: Diagrams and UI component development.
+- **Bhimsen Chhetri**: Diagrams and UI wireframes.
 - **Michael Kao**: Backend implementation and service integrations.
 
 ## 3) Agile And Scrum Artifacts
